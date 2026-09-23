@@ -189,7 +189,7 @@ struct LockedFaxView: View {
             VStack(spacing: 6) {
                 Button("Add \(pack.pages) pages and open fax") {
                     Task {
-                        if await store.purchase(pack.productID, accountToken: model.accountToken), let api = model.api {
+                        if await store.purchase(pack.productID), let api = model.api {
                             try? await api.unlockFax(id: fax.id)
                             await model.refreshFaxes()
                         }

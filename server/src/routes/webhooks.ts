@@ -1,11 +1,9 @@
 import type { AccountRow, Env, FaxRow } from "../env";
 import { charge, refund } from "../accounts";
-import { getTransaction, type NotificationPayload } from "../appstore";
-import { decodeJwsPayload, randomId, verifyTelnyxSignature } from "../crypto";
+import { randomId, verifyTelnyxSignature } from "../crypto";
 import { HttpError, json, now, type Router } from "../http";
 import { pageMultiplier, toE164 } from "../phone";
 import { downloadMedia } from "../telnyx";
-import { applyTransaction } from "./purchases";
 
 interface TelnyxEvent {
   data?: {
@@ -68,22 +66,6 @@ export function webhookRoutes(router: Router, env: Env) {
       await env.DB.prepare("UPDATE faxes SET state = 'failed', cost = 0, failure_reason = ?, updated_at = ? WHERE id = ?")
         .bind(readableFailure(p.failure_reason), now(), fax.id).run();
     }
-    return json({ ok: true });
-  });
-
-  /**
-   * App Store Server Notifications V2. The payload is decoded, then the transaction is
-   * re-fetched from Apple's API, so a forged notification can't change anything.
-   */
-  router.on("POST", "/v1/webhooks/appstore", async (request) => {
-    const { signedPayload } = (await request.json()) as { signedPayload?: string };
-    if (!signedPayload) throw new HttpError(400, "missing_payload");
-    const notification = decodeJwsPayload<NotificationPayload>(signedPayload);
-    const signedTx = notification.data?.signedTransactionInfo;
-    if (!signedTx) return json({ ok: true });
-    const claimed = decodeJwsPayload<{ transactionId: string }>(signedTx);
-    const tx = await getTransaction(env, claimed.transactionId);
-    await applyTransaction(env, tx, null, notification.notificationType);
     return json({ ok: true });
   });
 }

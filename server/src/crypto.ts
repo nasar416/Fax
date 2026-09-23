@@ -81,17 +81,6 @@ export async function verifyTelnyxSignature(publicKeyB64: string, timestamp: str
   }
 }
 
-/** ES256 JWT for the App Store Server API, signed with the In-App Purchase .p8 key. */
-export async function signAppStoreJwt(opts: { issuerId: string; keyId: string; privateKeyPem: string; bundleId: string }): Promise<string> {
-  const pem = opts.privateKeyPem.replace(/-----[^-]+-----/g, "").replace(/\s+/g, "");
-  const key = await crypto.subtle.importKey("pkcs8", base64ToBytes(pem), { name: "ECDSA", namedCurve: "P-256" }, false, ["sign"]);
-  const iat = Math.floor(Date.now() / 1000);
-  const header = base64UrlEncodeJson({ alg: "ES256", kid: opts.keyId, typ: "JWT" });
-  const payload = base64UrlEncodeJson({ iss: opts.issuerId, iat, exp: iat + 1200, aud: "appstoreconnect-v1", bid: opts.bundleId });
-  const signature = await crypto.subtle.sign({ name: "ECDSA", hash: "SHA-256" }, key, encoder.encode(`${header}.${payload}`));
-  return `${header}.${payload}.${bytesToBase64Url(signature)}`;
-}
-
 /** Verifies a Sign in with Apple identity token (RS256) against Apple's public keys. */
 export async function verifyAppleIdentityToken(token: string, bundleId: string, fetcher: typeof fetch = fetch): Promise<{ sub: string; email?: string }> {
   const [h, p, s] = token.split(".");

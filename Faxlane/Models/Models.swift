@@ -140,7 +140,7 @@ enum PlanTier: String, CaseIterable, Identifiable, Codable {
     /// App Store Connect product identifier for this plan and period.
     func productID(_ period: BillingPeriod) -> String { "com.faxlane.\(rawValue).\(period.rawValue)" }
 
-    /// Shown until StoreKit returns localized prices.
+    /// Shown until RevenueCat returns localized prices.
     func fallbackPrice(_ period: BillingPeriod) -> String {
         switch (self, period) {
         case (.basic, .weekly): "$3.99"

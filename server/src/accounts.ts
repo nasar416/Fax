@@ -31,13 +31,6 @@ export async function registerToken(env: Env, token: string): Promise<AccountRow
   return (await env.DB.prepare("SELECT * FROM accounts WHERE id = ?").bind(id).first<AccountRow>())!;
 }
 
-export async function tokenBelongsTo(env: Env, accountId: string, token: string | undefined): Promise<boolean> {
-  if (!token) return false;
-  const row = await env.DB.prepare("SELECT 1 AS ok FROM tokens WHERE token_hash = ? AND account_id = ?")
-    .bind(await sha256Hex(token.toLowerCase()), accountId).first();
-  return !!row;
-}
-
 export function balanceOf(a: AccountRow) {
   return {
     plan: (a.plan as Plan | null) ?? null,

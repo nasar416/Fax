@@ -7,14 +7,14 @@ export interface Env {
   TELNYX_FAX_APP_ID: string;
   SHARED_FROM_NUMBER: string;
   ALLOWED_DIAL_CODES: string;
-  APPSTORE_ENVIRONMENT: string;
 
   TELNYX_API_KEY: string;
   TELNYX_PUBLIC_KEY: string;
   MEDIA_SIGNING_SECRET: string;
-  APPSTORE_ISSUER_ID: string;
-  APPSTORE_KEY_ID: string;
-  APPSTORE_PRIVATE_KEY: string;
+  /** RevenueCat secret API key (sk_...), used to read a customer's purchases. */
+  REVENUECAT_SECRET_KEY: string;
+  /** The Authorization value set on the RevenueCat webhook. */
+  REVENUECAT_WEBHOOK_AUTH: string;
 }
 
 export interface AccountRow {
@@ -24,7 +24,6 @@ export interface AccountRow {
   plan: string | null;
   period: string | null;
   plan_expires_at: number | null;
-  original_transaction_id: string | null;
   cycle_start: number;
   pages_used: number;
   extra_pages: number;

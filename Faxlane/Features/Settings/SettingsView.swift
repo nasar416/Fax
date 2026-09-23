@@ -97,7 +97,7 @@ struct SettingsView: View {
         }
         .navigationTitle("Settings")
         .sheet(isPresented: $showPaywall) { PaywallView() }
-        .offerCodeRedemption(isPresented: $showRedeem) { _ in Task { await store.refreshEntitlements() } }
+        .offerCodeRedemption(isPresented: $showRedeem) { _ in Task { await store.syncAfterRedeem() } }
     }
 }
 

@@ -18,9 +18,9 @@ The Telnyx API key lives only here, as an encrypted Worker secret. The app never
 | `PATCH /v1/faxes/:id` | Marks read or moves to Trash. |
 | `POST /v1/faxes/:id/unlock` | Opens a locked fax once the account has pages. |
 | `DELETE /v1/trash` | Empties Trash. |
-| `POST /v1/purchases` | The app sends the StoreKit transaction ID. It is verified with the App Store Server API, then the plan is activated or page-pack pages are added (never twice). |
+| `POST /v1/purchases` | Called by the app after a purchase or restore. The server asks RevenueCat what the account owns, then sets the plan and adds page-pack pages (each pack only once). |
 | `POST /v1/webhooks/telnyx` | Telnyx events: sending, delivered (real page count), failed (all pages refunded), received. Every event's Ed25519 signature is checked. |
-| `POST /v1/webhooks/appstore` | App Store Server Notifications V2: renewals, expiry, refunds. Each transaction is re-checked with Apple. |
+| `POST /v1/webhooks/revenuecat` | RevenueCat events: purchases, renewals, expiry, refunds, transfers. The Authorization header is checked, then the account is re-read from RevenueCat's API. |
 | `GET/POST/DELETE /v1/blocked` | Blocked numbers. Faxes from them are dropped and cost the user no pages. |
 | `GET /v1/numbers/available`, `POST /v1/numbers` | Search and order fax numbers (paid plans, up to the plan's limit). |
 | `GET /v1/config` | Remote config for the app, read from the `config` table. |
@@ -55,9 +55,8 @@ npm run db:init                                     # creates the tables
 npx wrangler secret put TELNYX_API_KEY              # paste when asked; never commit it
 npx wrangler secret put TELNYX_PUBLIC_KEY
 npx wrangler secret put MEDIA_SIGNING_SECRET        # e.g. output of: openssl rand -hex 32
-npx wrangler secret put APPSTORE_ISSUER_ID
-npx wrangler secret put APPSTORE_KEY_ID
-npx wrangler secret put APPSTORE_PRIVATE_KEY        # paste the whole .p8 file
+npx wrangler secret put REVENUECAT_SECRET_KEY       # RevenueCat secret API key (sk_...)
+npx wrangler secret put REVENUECAT_WEBHOOK_AUTH     # e.g. output of: openssl rand -hex 32
 
 npm run deploy
 ```
@@ -69,7 +68,7 @@ Then do the following:
    - `TELNYX_FAX_APP_ID`: your Telnyx Fax Application ID.
    - `SHARED_FROM_NUMBER`: the number free users send from.
 2. In Telnyx, open your Fax Application and set the webhook URL to `https://<your-worker>/v1/webhooks/telnyx`.
-3. In App Store Connect, go to App Information → App Store Server Notifications. Set both Production and Sandbox to `https://<your-worker>/v1/webhooks/appstore` and choose Version 2.
+3. In RevenueCat, go to Integrations → Webhooks → Add. Set the URL to `https://<your-worker>/v1/webhooks/revenuecat` and the Authorization header to the same value as `REVENUECAT_WEBHOOK_AUTH`. Send events for both production and sandbox.
 4. In the iOS project (`project.yml` → `FaxlaneAPIBaseURL`), set the Worker URL. Run `xcodegen generate` again.
 
 To change remote config without an App Store update, run SQL like this:
@@ -81,14 +80,15 @@ npx wrangler d1 execute faxlane --remote --command "INSERT OR REPLACE INTO confi
 ## Develop and test
 
 ```bash
-npm test          # 21 tests: pages, refunds, webhooks, purchases, locked faxes, blocking, daily job
+npm test          # 22 tests: pages, refunds, webhooks, purchases, locked faxes, blocking, daily job
 npm run typecheck
 npm run dev       # local Worker with local D1/R2
 ```
 
-The tests use an in-memory SQLite database in place of D1, and mock Telnyx and Apple. They need Node 22 or later.
+The tests use an in-memory SQLite database in place of D1, and mock Telnyx and RevenueCat. They need Node 22 or later.
 
 ## Notes
 
 - **Blocked senders:** Telnyx delivers a received fax before our server sees it. So a blocked sender still costs you Telnyx's per-page price, but the user's pages are never charged.
-- **Refund requests:** Apple's "consumption information" answer (Send Consumption Information API) isn't implemented yet. The `share_usage` flag is already stored for when it is.
+- **Purchases:** the app buys through the RevenueCat SDK, with the Faxlane account ID as the RevenueCat App User ID. The server never trusts the app's word: it always reads the customer from RevenueCat's API.
+- **Refund requests:** Apple's "consumption information" answer isn't sent yet. The `share_usage` flag is already stored for when it is.

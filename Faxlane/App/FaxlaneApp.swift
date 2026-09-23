@@ -12,18 +12,25 @@ struct FaxlaneApp: App {
                 .environment(store)
                 .tint(Brand.blue)
                 .task {
-                    store.onVerifiedTransaction = { [model] id in
+                    store.onPurchasesChanged = { [model] in
                         guard let api = model.api else { return }
-                        if let account = try? await api.reportPurchase(transactionID: id) { model.apply(account) }
+                        if let account = try? await api.syncPurchases() { model.apply(account) }
                     }
+                    // RevenueCat's App User ID is the Faxlane account ID (remembered from the last launch).
+                    store.configure(appUserID: model.accountID)
                     await model.loadRemoteConfig()
                     await model.syncAccount()
+                    if let id = model.accountID { await store.logIn(id) }
                     await store.loadProducts()
                     if model.api == nil, let active = store.activePlan {
                         model.plan = active.tier
                         model.period = active.period
                     }
                     await model.refreshFaxes()
+                }
+                .onChange(of: model.accountID) { _, id in
+                    // Sign in with Apple can move this device to another account.
+                    if let id { Task { await store.logIn(id) } }
                 }
         }
     }

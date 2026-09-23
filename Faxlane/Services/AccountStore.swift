@@ -2,7 +2,7 @@ import Foundation
 import Security
 
 /// Keeps the account token so the account comes back after a reinstall.
-/// Order: Keychain (iCloud Keychain sync) → iCloud key-value store → StoreKit appAccountToken → new guest.
+/// Order: Keychain (iCloud Keychain sync) → iCloud key-value store → new guest.
 enum AccountStore {
     private static let service = "com.faxlane.account"
     private static let key = "accountToken"

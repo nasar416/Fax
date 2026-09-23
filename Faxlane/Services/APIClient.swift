@@ -69,9 +69,8 @@ struct APIClient: Sendable {
 
     func me() async throws -> Account { try await send("GET", "v1/me") }
 
-    func reportPurchase(transactionID: UInt64) async throws -> Account {
-        try await send("POST", "v1/purchases", json: ["transactionId": String(transactionID)])
-    }
+    /// Asks the server to re-read this account's purchases from RevenueCat.
+    func syncPurchases() async throws -> Account { try await send("POST", "v1/purchases") }
 
     func signInWithApple(identityToken: String) async throws -> Account {
         try await send("POST", "v1/auth/apple", json: ["identityToken": identityToken])

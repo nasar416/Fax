@@ -1,5 +1,4 @@
 import SwiftUI
-import StoreKit
 
 struct PaywallView: View {
     @Environment(AppModel.self) private var model
@@ -43,7 +42,7 @@ struct PaywallView: View {
         VStack(spacing: 8) {
             Button {
                 Task {
-                    if await store.purchase(tier.productID(period), accountToken: model.accountToken) {
+                    if await store.purchase(tier.productID(period)) {
                         model.plan = tier
                         model.period = period
                         dismiss()
@@ -137,8 +136,8 @@ struct TopUpView: View {
             .safeAreaInset(edge: .bottom) {
                 Button("Buy \(pack.pages) pages") {
                     Task {
-                        if await store.purchase(pack.productID, accountToken: model.accountToken) {
-                            model.extraPages += pack.pages
+                        if await store.purchase(pack.productID) {
+                            if model.api == nil { model.extraPages += pack.pages } // with a server, the synced account already has them
                             dismiss()
                         }
                     }

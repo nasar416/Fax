@@ -11,6 +11,8 @@ final class AppModel {
 
     // Account
     var accountToken: UUID
+    /// Server account ID; also the RevenueCat App User ID. Kept so purchases link up before the network answers.
+    var accountID: String? = UserDefaults.standard.string(forKey: "accountID")
     var restoredFromBackup: Bool
     var isSignedIn = false
     var displayName = ""
@@ -124,6 +126,10 @@ final class AppModel {
     }
 
     func apply(_ account: APIClient.Account) {
+        if accountID != account.id {
+            accountID = account.id
+            UserDefaults.standard.set(account.id, forKey: "accountID")
+        }
         plan = account.plan.flatMap(PlanTier.init(rawValue:))
         if let p = account.period.flatMap(BillingPeriod.init(rawValue:)) { period = p }
         isSignedIn = account.signedIn
@@ -258,7 +264,10 @@ final class AppModel {
         let token = UUID()
         AccountStore.saveToken(token)
         accountToken = token
+        accountID = nil
+        UserDefaults.standard.removeObject(forKey: "accountID")
         if let base = APIClient.configuredBaseURL { api = APIClient(baseURL: base, token: token) }
         stage = .language
+        Task { await syncAccount() } // registers the new guest; RevenueCat follows through accountID
     }
 }

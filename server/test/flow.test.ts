@@ -1,7 +1,7 @@
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import worker from "../src/index";
 import { runDaily } from "../src/cron";
-import { base64UrlEncodeJson, signedMediaUrl } from "../src/crypto";
+import { signedMediaUrl } from "../src/crypto";
 import type { Env } from "../src/env";
 import { fakeD1, fakeR2 } from "./fakes";
 
@@ -12,15 +12,13 @@ let r2: ReturnType<typeof fakeR2>;
 let telnyxKeys: CryptoKeyPair;
 let telnyxSent: unknown[] = [];
 let telnyxCounter = 0;
-let appleTransactions: Record<string, object> = {};
+let rcSubscriber: { subscriptions: Record<string, object>; non_subscriptions: Record<string, object[]> } = { subscriptions: {}, non_subscriptions: {} };
 
 const b64 = (buf: ArrayBuffer) => btoa(String.fromCharCode(...new Uint8Array(buf)));
-const fakeJws = (payload: object) => `${base64UrlEncodeJson({ alg: "ES256" })}.${base64UrlEncodeJson(payload)}.sig`;
+const iso = (msFromNow: number) => new Date(Date.now() + msFromNow).toISOString();
 
 beforeAll(async () => {
   telnyxKeys = (await crypto.subtle.generateKey({ name: "Ed25519" }, true, ["sign", "verify"])) as CryptoKeyPair;
-  const appStoreKey = (await crypto.subtle.generateKey({ name: "ECDSA", namedCurve: "P-256" }, true, ["sign", "verify"])) as CryptoKeyPair;
-  const pkcs8 = b64(await crypto.subtle.exportKey("pkcs8", appStoreKey.privateKey) as ArrayBuffer);
   d1 = fakeD1();
   r2 = fakeR2();
   env = {
@@ -31,13 +29,11 @@ beforeAll(async () => {
     TELNYX_FAX_APP_ID: "fax-app-1",
     SHARED_FROM_NUMBER: "+15550000000",
     ALLOWED_DIAL_CODES: "1,44",
-    APPSTORE_ENVIRONMENT: "Production",
     TELNYX_API_KEY: "test",
     TELNYX_PUBLIC_KEY: b64(await crypto.subtle.exportKey("raw", telnyxKeys.publicKey) as ArrayBuffer),
     MEDIA_SIGNING_SECRET: "media-secret",
-    APPSTORE_ISSUER_ID: "issuer",
-    APPSTORE_KEY_ID: "KEY123",
-    APPSTORE_PRIVATE_KEY: `-----BEGIN PRIVATE KEY-----\n${pkcs8}\n-----END PRIVATE KEY-----`,
+    REVENUECAT_SECRET_KEY: "sk_test",
+    REVENUECAT_WEBHOOK_AUTH: "hook-secret",
   };
 
   vi.stubGlobal("fetch", async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -46,13 +42,10 @@ beforeAll(async () => {
       telnyxSent.push(JSON.parse(String(init?.body)));
       return Response.json({ data: { id: `tx-${++telnyxCounter}` } });
     }
-    if (url.startsWith("https://api.storekit.itunes.apple.com/inApps/v1/transactions/")) {
-      expect(new Headers(init?.headers).get("authorization")).toMatch(/^Bearer ey/);
-      const id = decodeURIComponent(url.split("/").pop()!);
-      const tx = appleTransactions[id];
-      return tx ? Response.json({ signedTransactionInfo: fakeJws(tx) }) : new Response("", { status: 404 });
+    if (url.startsWith("https://api.revenuecat.com/v1/subscribers/")) {
+      expect(new Headers(init?.headers).get("authorization")).toBe("Bearer sk_test");
+      return Response.json({ subscriber: rcSubscriber });
     }
-    if (url.startsWith("https://api.storekit-sandbox.itunes.apple.com")) return new Response("", { status: 404 });
     if (url === "https://media.telnyx.test/in.pdf") return new Response(new Uint8Array([37, 80, 68, 70]));
     throw new Error(`Unexpected fetch ${url}`);
   });
@@ -68,6 +61,13 @@ async function call(method: string, path: string, body?: unknown, auth = true) {
   else if (body !== undefined) { payload = JSON.stringify(body); headers["content-type"] = "application/json"; }
   const res = await worker.fetch(new Request(`https://api.faxlane.test${path}`, { method, headers, body: payload }), env);
   return { status: res.status, body: res.headers.get("content-type")?.includes("json") ? await res.json() as any : await res.arrayBuffer() };
+}
+
+async function revenueCatEvent(event: object, auth = "hook-secret") {
+  const res = await worker.fetch(new Request("https://api.faxlane.test/v1/webhooks/revenuecat", {
+    method: "POST", body: JSON.stringify({ event }), headers: { authorization: auth, "content-type": "application/json" },
+  }), env);
+  return res.status;
 }
 
 async function telnyxEvent(event_type: string, payload: object) {
@@ -139,14 +139,19 @@ describe("Faxlane API", () => {
     expect(res.status).toBe(401);
   });
 
-  it("activates a plan verified with Apple", async () => {
-    appleTransactions["1001"] = {
-      transactionId: "1001", originalTransactionId: "1000", bundleId: "com.faxlane.app", productId: "com.faxlane.premium.monthly",
-      purchaseDate: Date.now(), expiresDate: Date.now() + 30 * 86400_000, appAccountToken: TOKEN, type: "Auto-Renewable Subscription", environment: "Production",
-    };
-    const res = await call("POST", "/v1/purchases", { transactionId: "1001" });
+  it("activates a plan that RevenueCat confirms", async () => {
+    // The app's claim alone changes nothing: RevenueCat has no purchase yet.
+    expect((await call("POST", "/v1/purchases")).body.plan).toBeNull();
+    rcSubscriber.subscriptions["com.faxlane.premium.monthly"] = { expires_date: iso(30 * 86400_000), purchase_date: iso(0), store: "app_store" };
+    const res = await call("POST", "/v1/purchases");
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({ plan: "premium", period: "monthly", pageLimit: 300, pagesLeft: 300 });
+  });
+
+  it("rejects RevenueCat webhooks without the shared secret", async () => {
+    const me = (await call("GET", "/v1/me")).body;
+    expect(await revenueCatEvent({ type: "EXPIRATION", app_user_id: me.id }, "wrong")).toBe(401);
+    expect((await call("GET", "/v1/me")).body.plan).toBe("premium");
   });
 
   it("receives faxes, drops blocked senders and locks faxes when pages run out", async () => {
@@ -177,28 +182,26 @@ describe("Faxlane API", () => {
     expect((await call("GET", `/v1/faxes/${locked.id}/pdf`)).status).toBe(402);
 
     // Buy a 10-page pack, then open the locked fax.
-    appleTransactions["2001"] = {
-      transactionId: "2001", originalTransactionId: "2001", bundleId: "com.faxlane.app", productId: "com.faxlane.pages.10",
-      purchaseDate: Date.now(), appAccountToken: TOKEN, type: "Consumable", environment: "Production",
-    };
-    expect((await call("POST", "/v1/purchases", { transactionId: "2001" })).body.extraPages).toBe(10);
-    expect((await call("POST", "/v1/purchases", { transactionId: "2001" })).body.extraPages).toBe(10); // no double credit
+    rcSubscriber.non_subscriptions["com.faxlane.pages.10"] = [{ id: "rc-2001", store_transaction_id: "2001", purchase_date: iso(0), store: "app_store" }];
+    expect((await call("POST", "/v1/purchases")).body.extraPages).toBe(10);
+    expect((await call("POST", "/v1/purchases")).body.extraPages).toBe(10); // no double credit
     expect((await call("POST", `/v1/faxes/${locked.id}/unlock`)).body.state).toBe("received");
     expect((await call("GET", "/v1/me")).body.extraPages).toBe(7);
   });
 
-  it("takes page-pack pages back after an Apple refund", async () => {
-    appleTransactions["2001"] = { ...appleTransactions["2001"], revocationDate: Date.now() };
-    const signedPayload = fakeJws({ notificationType: "REFUND", data: { signedTransactionInfo: fakeJws({ transactionId: "2001" }) } });
-    const res = await worker.fetch(new Request("https://api.faxlane.test/v1/webhooks/appstore", { method: "POST", body: JSON.stringify({ signedPayload }) }), env);
-    expect(res.status).toBe(200);
+  it("takes page-pack pages back after a refund", async () => {
+    const me = (await call("GET", "/v1/me")).body;
+    const refund = { type: "CANCELLATION", cancel_reason: "CUSTOMER_SUPPORT", app_user_id: me.id, product_id: "com.faxlane.pages.10", transaction_id: "2001" };
+    expect(await revenueCatEvent(refund)).toBe(200);
+    expect((await call("GET", "/v1/me")).body.extraPages).toBe(-3);
+    await revenueCatEvent(refund); // only once
     expect((await call("GET", "/v1/me")).body.extraPages).toBe(-3);
   });
 
   it("holds numbers for 14 days when the plan ends", async () => {
-    appleTransactions["1002"] = { ...appleTransactions["1001"], transactionId: "1002", expiresDate: Date.now() - 1000 };
-    const signedPayload = fakeJws({ notificationType: "EXPIRED", data: { signedTransactionInfo: fakeJws({ transactionId: "1002" }) } });
-    await worker.fetch(new Request("https://api.faxlane.test/v1/webhooks/appstore", { method: "POST", body: JSON.stringify({ signedPayload }) }), env);
+    const me = (await call("GET", "/v1/me")).body;
+    rcSubscriber.subscriptions["com.faxlane.premium.monthly"] = { expires_date: iso(-1000), purchase_date: iso(-31 * 86400_000), store: "app_store" };
+    expect(await revenueCatEvent({ type: "EXPIRATION", app_user_id: me.id, product_id: "com.faxlane.premium.monthly" })).toBe(200);
     expect((await call("GET", "/v1/me")).body.plan).toBeNull();
     const row = d1.raw.prepare("SELECT release_after FROM numbers").get() as { release_after: number };
     expect(row.release_after).toBeGreaterThan(Math.floor(Date.now() / 1000) + 13 * 86400);

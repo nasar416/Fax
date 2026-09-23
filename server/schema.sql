@@ -6,7 +6,6 @@ CREATE TABLE IF NOT EXISTS accounts (
   plan TEXT,                         -- basic | premium | business | enterprise | NULL (free)
   period TEXT,                       -- weekly | monthly | annual
   plan_expires_at INTEGER,
-  original_transaction_id TEXT UNIQUE,
   cycle_start INTEGER NOT NULL,
   pages_used INTEGER NOT NULL DEFAULT 0,
   extra_pages INTEGER NOT NULL DEFAULT 0,
@@ -65,7 +64,7 @@ CREATE TABLE IF NOT EXISTS blocked (
   PRIMARY KEY (account_id, e164)
 );
 
--- Every App Store transaction applied, so nothing is counted twice.
+-- Every page-pack purchase credited (from RevenueCat), so nothing is counted twice.
 CREATE TABLE IF NOT EXISTS transactions (
   transaction_id TEXT PRIMARY KEY,
   original_transaction_id TEXT NOT NULL,
