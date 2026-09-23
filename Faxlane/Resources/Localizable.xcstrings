@@ -1,0 +1,1276 @@
+{
+  "sourceLanguage": "en",
+  "version": "1.0",
+  "strings": {
+    "Home": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الرئيسية"
+          }
+        }
+      }
+    },
+    "Send": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "إرسال"
+          }
+        }
+      }
+    },
+    "Faxes": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الفاكسات"
+          }
+        }
+      }
+    },
+    "Settings": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الإعدادات"
+          }
+        }
+      }
+    },
+    "New fax": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "فاكس جديد"
+          }
+        }
+      }
+    },
+    "Go Pro": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الترقية"
+          }
+        }
+      }
+    },
+    "Send a fax\nin 30 seconds.": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "أرسل فاكسًا\nفي 30 ثانية."
+          }
+        }
+      }
+    },
+    "Get more": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "احصل على المزيد"
+          }
+        }
+      }
+    },
+    "Scan": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "مسح ضوئي"
+          }
+        }
+      }
+    },
+    "Files": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الملفات"
+          }
+        }
+      }
+    },
+    "Photos": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الصور"
+          }
+        }
+      }
+    },
+    "Recent": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الأحدث"
+          }
+        }
+      }
+    },
+    "See all": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "عرض الكل"
+          }
+        }
+      }
+    },
+    "No faxes yet": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لا توجد فاكسات بعد"
+          }
+        }
+      }
+    },
+    "No fax number yet": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لا يوجد رقم فاكس بعد"
+          }
+        }
+      }
+    },
+    "Get your own fax number": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "احصل على رقم فاكس خاص بك"
+          }
+        }
+      }
+    },
+    "Receive faxes and send more pages": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "استقبل الفاكسات وأرسل صفحات أكثر"
+          }
+        }
+      }
+    },
+    "Upgrade": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ترقية"
+          }
+        }
+      }
+    },
+    "Dismiss": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "إغلاق"
+          }
+        }
+      }
+    },
+    "Inbox": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الوارد"
+          }
+        }
+      }
+    },
+    "Sent": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "المرسلة"
+          }
+        }
+      }
+    },
+    "Outbox": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الصادر"
+          }
+        }
+      }
+    },
+    "Trash": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "المحذوفات"
+          }
+        }
+      }
+    },
+    "Delivered": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تم التسليم"
+          }
+        }
+      }
+    },
+    "Failed": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "فشل"
+          }
+        }
+      }
+    },
+    "Received": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "مستلم"
+          }
+        }
+      }
+    },
+    "Sending": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "جارٍ الإرسال"
+          }
+        }
+      }
+    },
+    "Queued": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "في الانتظار"
+          }
+        }
+      }
+    },
+    "Locked": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "مقفل"
+          }
+        }
+      }
+    },
+    "Waiting for internet": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "بانتظار الإنترنت"
+          }
+        }
+      }
+    },
+    "Get a number to receive faxes": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "احصل على رقم لاستقبال الفاكسات"
+          }
+        }
+      }
+    },
+    "Choose your number": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "اختر رقمك"
+          }
+        }
+      }
+    },
+    "Restore": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "استعادة"
+          }
+        }
+      }
+    },
+    "Retry": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "إعادة المحاولة"
+          }
+        }
+      }
+    },
+    "Delete": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "حذف"
+          }
+        }
+      }
+    },
+    "Block": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "حظر"
+          }
+        }
+      }
+    },
+    "Mark read": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تمييز كمقروء"
+          }
+        }
+      }
+    },
+    "Share": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "مشاركة"
+          }
+        }
+      }
+    },
+    "Search name, number or date": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ابحث بالاسم أو الرقم أو التاريخ"
+          }
+        }
+      }
+    },
+    "Faxes sent to this number land here": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تصل هنا الفاكسات المرسلة إلى هذا الرقم"
+          }
+        }
+      }
+    },
+    "Copy fax number": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "نسخ رقم الفاكس"
+          }
+        }
+      }
+    },
+    "To": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "إلى"
+          }
+        }
+      }
+    },
+    "Fax number": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "رقم الفاكس"
+          }
+        }
+      }
+    },
+    "Pages": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الصفحات"
+          }
+        }
+      }
+    },
+    "Add pages": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "إضافة صفحات"
+          }
+        }
+      }
+    },
+    "Scan with camera": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "المسح بالكاميرا"
+          }
+        }
+      }
+    },
+    "Write a page": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "كتابة صفحة"
+          }
+        }
+      }
+    },
+    "Add a cover sheet": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "إضافة صفحة غلاف"
+          }
+        }
+      }
+    },
+    "Edit cover sheet": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تعديل صفحة الغلاف"
+          }
+        }
+      }
+    },
+    "Review": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "المراجعة"
+          }
+        }
+      }
+    },
+    "Send fax": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "إرسال الفاكس"
+          }
+        }
+      }
+    },
+    "International pages count as 3 pages.": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الصفحات الدولية تُحتسب 3 صفحات."
+          }
+        }
+      }
+    },
+    "Choose recipient": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "اختر المستلم"
+          }
+        }
+      }
+    },
+    "Search contacts": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ابحث في جهات الاتصال"
+          }
+        }
+      }
+    },
+    "Cancel": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "إلغاء"
+          }
+        }
+      }
+    },
+    "Done": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تم"
+          }
+        }
+      }
+    },
+    "Continue": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "متابعة"
+          }
+        }
+      }
+    },
+    "Get started": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ابدأ"
+          }
+        }
+      }
+    },
+    "Skip": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تخطي"
+          }
+        }
+      }
+    },
+    "Choose your language": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "اختر لغتك"
+          }
+        }
+      }
+    },
+    "Scan any paper in seconds": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "امسح أي ورقة في ثوانٍ"
+          }
+        }
+      }
+    },
+    "Fax anywhere in the world": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "أرسل فاكسًا إلى أي مكان في العالم"
+          }
+        }
+      }
+    },
+    "Know it arrived": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "اعرف أنه وصل"
+          }
+        }
+      }
+    },
+    "Know the moment your fax arrives": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "اعرف لحظة وصول الفاكس"
+          }
+        }
+      }
+    },
+    "Turn on notifications": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تفعيل الإشعارات"
+          }
+        }
+      }
+    },
+    "Not now": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ليس الآن"
+          }
+        }
+      }
+    },
+    "Welcome back": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "مرحبًا بعودتك"
+          }
+        }
+      }
+    },
+    "Choose your plan": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "اختر باقتك"
+          }
+        }
+      }
+    },
+    "Weekly": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "أسبوعي"
+          }
+        }
+      }
+    },
+    "Monthly": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "شهري"
+          }
+        }
+      }
+    },
+    "Annual": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "سنوي"
+          }
+        }
+      }
+    },
+    "Basic": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الأساسية"
+          }
+        }
+      }
+    },
+    "Premium": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "المميزة"
+          }
+        }
+      }
+    },
+    "Business": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الأعمال"
+          }
+        }
+      }
+    },
+    "Enterprise": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "المؤسسات"
+          }
+        }
+      }
+    },
+    "Most popular": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الأكثر شيوعًا"
+          }
+        }
+      }
+    },
+    "Start 3-day free trial": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ابدأ التجربة المجانية لمدة 3 أيام"
+          }
+        }
+      }
+    },
+    "Close": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "إغلاق"
+          }
+        }
+      }
+    },
+    "Guest account": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "حساب ضيف"
+          }
+        }
+      }
+    },
+    "Comes back if you reinstall": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "يعود تلقائيًا إذا أعدت التثبيت"
+          }
+        }
+      }
+    },
+    "Free plan": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الباقة المجانية"
+          }
+        }
+      }
+    },
+    "Fax": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الفاكس"
+          }
+        }
+      }
+    },
+    "Fax numbers": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "أرقام الفاكس"
+          }
+        }
+      }
+    },
+    "Pause receiving": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "إيقاف الاستقبال مؤقتًا"
+          }
+        }
+      }
+    },
+    "Contacts, groups & blocked": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "جهات الاتصال والمجموعات والمحظورة"
+          }
+        }
+      }
+    },
+    "Team": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الفريق"
+          }
+        }
+      }
+    },
+    "Language": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "اللغة"
+          }
+        }
+      }
+    },
+    "Delivery notifications": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "إشعارات التسليم"
+          }
+        }
+      }
+    },
+    "New fax received alerts": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تنبيهات الفاكس الوارد"
+          }
+        }
+      }
+    },
+    "Back up faxes to iCloud": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "نسخ الفاكسات احتياطيًا إلى iCloud"
+          }
+        }
+      }
+    },
+    "Privacy": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الخصوصية"
+          }
+        }
+      }
+    },
+    "Keep faxes for": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الاحتفاظ بالفاكسات لمدة"
+          }
+        }
+      }
+    },
+    "Share page usage for refund reviews": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "مشاركة استخدام الصفحات عند طلب الاسترداد"
+          }
+        }
+      }
+    },
+    "Support": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الدعم"
+          }
+        }
+      }
+    },
+    "Restore purchases": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "استعادة المشتريات"
+          }
+        }
+      }
+    },
+    "Redeem a code": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "استخدام رمز"
+          }
+        }
+      }
+    },
+    "Help and support": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "المساعدة والدعم"
+          }
+        }
+      }
+    },
+    "Account": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الحساب"
+          }
+        }
+      }
+    },
+    "Delete account": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "حذف الحساب"
+          }
+        }
+      }
+    },
+    "Contact support": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تواصل مع الدعم"
+          }
+        }
+      }
+    },
+    "Report a problem": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الإبلاغ عن مشكلة"
+          }
+        }
+      }
+    },
+    "Send message": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "إرسال الرسالة"
+          }
+        }
+      }
+    },
+    "Contacts": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "جهات الاتصال"
+          }
+        }
+      }
+    },
+    "All": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الكل"
+          }
+        }
+      }
+    },
+    "Groups": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "المجموعات"
+          }
+        }
+      }
+    },
+    "Blocked": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "المحظورة"
+          }
+        }
+      }
+    },
+    "Import from your phone": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "استيراد من هاتفك"
+          }
+        }
+      }
+    },
+    "New group": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "مجموعة جديدة"
+          }
+        }
+      }
+    },
+    "Allow access": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "السماح بالوصول"
+          }
+        }
+      }
+    },
+    "Team contacts": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "جهات اتصال الفريق"
+          }
+        }
+      }
+    },
+    "See Business plan": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "عرض باقة Business"
+          }
+        }
+      }
+    },
+    "Sign & fill": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "التوقيع والتعبئة"
+          }
+        }
+      }
+    },
+    "Reply": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "رد"
+          }
+        }
+      }
+    },
+    "Forward": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "إعادة توجيه"
+          }
+        }
+      }
+    },
+    "Print": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "طباعة"
+          }
+        }
+      }
+    },
+    "Block this sender": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "حظر هذا المرسل"
+          }
+        }
+      }
+    },
+    "Move to Trash": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "نقل إلى المحذوفات"
+          }
+        }
+      }
+    },
+    "Fax it back to the sender": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "أعِد إرساله بالفاكس إلى المرسل"
+          }
+        }
+      }
+    },
+    "Time to update Faxlane": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "حان وقت تحديث Faxlane"
+          }
+        }
+      }
+    },
+    "Update in the App Store": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "التحديث من App Store"
+          }
+        }
+      }
+    },
+    "Sending is paused for a moment": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الإرسال متوقف لبعض الوقت"
+          }
+        }
+      }
+    },
+    "Sending your fax…": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "جارٍ إرسال الفاكس…"
+          }
+        }
+      }
+    },
+    "Calling the fax machine…": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "جارٍ الاتصال بجهاز الفاكس…"
+          }
+        }
+      }
+    },
+    "Fax not sent": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لم يُرسل الفاكس"
+          }
+        }
+      }
+    },
+    "Share receipt": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "مشاركة الإيصال"
+          }
+        }
+      }
+    },
+    "Failed faxes never use your pages.": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الفاكس الفاشل لا يستخدم صفحاتك."
+          }
+        }
+      }
+    },
+    "Sending to %@": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "جارٍ الإرسال إلى %@"
+          }
+        }
+      }
+    }
+  }
+}
