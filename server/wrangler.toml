@@ -21,7 +21,7 @@ PUBLIC_BASE_URL = "https://faxlane-api.YOUR-SUBDOMAIN.workers.dev"
 # Telnyx Fax Application (connection) ID from the Telnyx portal. Not a secret.
 TELNYX_FAX_APP_ID = "REPLACE_WITH_TELNYX_FAX_APPLICATION_ID"
 # Shared number free users send from (they have no number of their own).
-SHARED_FROM_NUMBER = "+15550000000"
+SHARED_FROM_NUMBER = "+16186741234"
 # Country calling codes users may fax to. Protects against toll fraud.
 ALLOWED_DIAL_CODES = "1,44,49,33,39,34,31,32,41,43,45,46,47,48,351,353,358,420,61,64,81,82,852,65,971,966,974,965,973,968,972,90,91,880,92,62,63,60,66,84,55,52,54,56,57,27"
 
