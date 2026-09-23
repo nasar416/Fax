@@ -59,7 +59,7 @@ struct PaywallView: View {
                 .font(.caption2).foregroundStyle(.secondary).multilineTextAlignment(.center)
             HStack(spacing: 14) {
                 Link("Terms", destination: URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")!)
-                Link("Privacy", destination: URL(string: "https://example.com/privacy")!) // replace with your privacy policy URL
+                Link("Privacy", destination: URL(string: "https://sites.google.com/view/faxlaneprivacypolicy/home")!)
                 Button("Restore") { Task { await store.restore() } }
             }
             .font(.caption.weight(.semibold))
