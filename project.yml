@@ -9,7 +9,7 @@ settings:
     SWIFT_VERSION: "5.9"
     MARKETING_VERSION: "1.0.0"
     CURRENT_PROJECT_VERSION: "1"
-    DEVELOPMENT_TEAM: ""   # set your Apple Developer Team ID
+    DEVELOPMENT_TEAM: "G2489MGTW2"
 packages:
   RevenueCat:
     url: https://github.com/RevenueCat/purchases-ios-spm
