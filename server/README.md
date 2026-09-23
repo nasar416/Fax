@@ -62,11 +62,7 @@ The database needs no setup: the `Database` Durable Object creates its tables on
 
 Webhooks: Telnyx Fax Application → `https://<worker>/v1/webhooks/telnyx`; RevenueCat → `https://<worker>/v1/webhooks/revenuecat` with the `REVENUECAT_WEBHOOK_AUTH` value as the Authorization header.
 
-To change remote config without an App Store update, run SQL like this:
-
-```bash
-# Add a small admin route or use the Durable Object console to change rows in the config table.
-```
+Remote config (announcement, maintenance, minimum version) lives in the `config` table. Change a row there to update the app without an App Store release.
 
 ## Develop and test
 
