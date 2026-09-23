@@ -5,7 +5,7 @@ import { HttpError, json, now, readJson, type Router } from "../http";
 import { releaseNumber } from "../telnyx";
 
 async function numbersOf(env: Env, accountId: string) {
-  const { results } = await env.DB.prepare("SELECT e164, label FROM numbers WHERE account_id = ? ORDER BY created_at").bind(accountId).all<{ e164: string; label: string }>();
+  const { results } = await env.DB.prepare("SELECT e164, label, release_after FROM numbers WHERE account_id = ? ORDER BY created_at").bind(accountId).all<{ e164: string; label: string; release_after: number | null }>();
   return results;
 }
 

@@ -233,8 +233,58 @@ describe("Faxlane API", () => {
     expect((await worker.fetch(new Request(good), env)).status).toBe(403);
   });
 
+  it("shows the 14-day hold on the account", async () => {
+    const me = (await call("GET", "/v1/me")).body;
+    expect(me.plan).toBeNull();
+    expect(me.numbers[0].releaseAfter).toBeGreaterThan(Math.floor(Date.now() / 1000));
+  });
+
+  it("catches a lapsed plan in the daily job when the webhook never came", async () => {
+    const ts = Math.floor(Date.now() / 1000);
+    d1.raw.prepare("UPDATE numbers SET release_after = NULL").run();
+    d1.raw.prepare("UPDATE accounts SET plan = 'premium', period = 'monthly', plan_expires_at = ?").run(ts - 2 * 3600);
+    rcSubscriptions = [{ product_id: "prod_pm", gives_access: false, current_period_ends_at: (ts - 2 * 3600) * 1000 }];
+    await runDaily(env);
+    expect((await call("GET", "/v1/me")).body.plan).toBeNull();
+    expect((d1.raw.prepare("SELECT release_after FROM numbers").get() as { release_after: number }).release_after).toBeGreaterThan(ts + 13 * 86400);
+  });
+
+  it("keeps a plan that renewed even if the webhook never came", async () => {
+    const ts = Math.floor(Date.now() / 1000);
+    d1.raw.prepare("UPDATE accounts SET plan = 'premium', period = 'monthly', plan_expires_at = ?").run(ts - 2 * 3600);
+    rcSubscriptions = [{ product_id: "prod_pm", gives_access: true, current_period_ends_at: (ts + 30 * 86400) * 1000 }];
+    await runDaily(env);
+    const me = (await call("GET", "/v1/me")).body;
+    expect(me.plan).toBe("premium");
+    expect(me.planExpiresAt).toBeGreaterThan(ts + 29 * 86400);
+    expect(me.numbers[0].releaseAfter).toBeNull();
+  });
+
+  it("releases held numbers only when they belong to the Faxlane fax app", async () => {
+    const ts = Math.floor(Date.now() / 1000);
+    d1.raw.prepare("INSERT INTO numbers (e164, account_id, created_at, release_after) SELECT '+15550177001', id, 0, ? FROM accounts LIMIT 1").run(ts - 60);
+    d1.raw.prepare("INSERT INTO numbers (e164, account_id, created_at, release_after) SELECT '+15550177002', id, 0, ? FROM accounts LIMIT 1").run(ts - 60);
+    const deleted: string[] = [];
+    const saved = globalThis.fetch;
+    vi.stubGlobal("fetch", async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.includes("/phone_numbers?")) {
+        const other = decodeURIComponent(url).includes("+15550177002");
+        return Response.json({ data: [{ id: other ? "pn-other" : "pn-ours", connection_id: other ? "call-recorder" : "fax-app-1" }] });
+      }
+      if (init?.method === "DELETE") { deleted.push(url.split("/").pop()!); return Response.json({}); }
+      return saved(input, init);
+    });
+    await runDaily(env);
+    vi.stubGlobal("fetch", saved);
+    expect(deleted).toEqual(["pn-ours"]);
+    const left = (d1.raw.prepare("SELECT e164 FROM numbers WHERE e164 LIKE '+1555017700%'").all() as { e164: string }[]).map((r) => r.e164);
+    expect(left).toEqual(["+15550177002"]); // not ours: kept and logged, never deleted
+    d1.raw.prepare("DELETE FROM numbers WHERE e164 = '+15550177002'").run();
+  });
+
   it("resets page cycles in the daily job", async () => {
-    d1.raw.prepare("UPDATE accounts SET plan = 'basic', period = 'monthly', pages_used = 80, cycle_start = ?").run(Math.floor(Date.now() / 1000) - 31 * 86400);
+    d1.raw.prepare("UPDATE accounts SET plan = 'basic', period = 'monthly', pages_used = 80, plan_expires_at = NULL, cycle_start = ?").run(Math.floor(Date.now() / 1000) - 31 * 86400);
     await runDaily(env);
     expect((await call("GET", "/v1/me")).body.pagesUsed).toBe(0);
   });
@@ -242,7 +292,7 @@ describe("Faxlane API", () => {
   it("deletes the account and every file", async () => {
     vi.stubGlobal("fetch", async (input: RequestInfo | URL) => {
       const url = String(input);
-      if (url.includes("/phone_numbers?")) return Response.json({ data: [{ id: "pn-1" }] });
+      if (url.includes("/phone_numbers?")) return Response.json({ data: [{ id: "pn-1", connection_id: "fax-app-1" }] });
       if (url.endsWith("/phone_numbers/pn-1")) return Response.json({});
       throw new Error(`Unexpected fetch ${url}`);
     });

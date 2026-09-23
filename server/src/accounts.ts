@@ -41,7 +41,9 @@ export function balanceOf(a: AccountRow) {
   };
 }
 
-export function publicAccount(a: AccountRow, numbers: { e164: string; label: string }[]) {
+export function publicAccount(a: AccountRow, rows: { e164: string; label: string; release_after: number | null }[]) {
+  // releaseAfter is set while a number is on hold after the plan ended (14 days, then released).
+  const numbers = rows.map((n) => ({ e164: n.e164, label: n.label, releaseAfter: n.release_after ?? null }));
   const b = balanceOf(a);
   return {
     id: a.id,

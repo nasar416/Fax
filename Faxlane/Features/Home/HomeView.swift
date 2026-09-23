@@ -12,6 +12,7 @@ struct HomeView: View {
                 if let note = model.remoteConfig.announcement {
                     NoteBox(text: LocalizedStringKey(note))
                 }
+                if let held = model.heldNumber { heldNumberCard(held) }
                 Text("Send a fax\nin 30 seconds.").font(.display(36)).lineSpacing(-4)
                 Button { selectedTab = .send } label: {
                     HStack {
@@ -39,6 +40,27 @@ struct HomeView: View {
         .safeAreaInset(edge: .bottom) { UpgradeBanner() }
         .sheet(isPresented: $showPaywall) { PaywallView() }
         .navigationDestination(for: Fax.self) { FaxDetailView(fax: $0) }
+    }
+
+    /// The plan ended: the number is kept for 14 days, then released.
+    private func heldNumberCard(_ held: FaxNumber) -> some View {
+        NavigationLink { NumberGraceView() } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "clock.badge.exclamationmark").font(.title2).foregroundStyle(Brand.pending)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Your plan has ended").font(.subheadline.weight(.semibold))
+                    if let end = held.releaseAfter {
+                        Text("Renew by \(end.formatted(date: .abbreviated, time: .omitted)) to keep \(Text(verbatim: "\u{2066}\(held.number)\u{2069}"))")
+                            .font(.footnote).foregroundStyle(.secondary)
+                    }
+                }
+                Spacer()
+                Image(systemName: "chevron.forward").font(.footnote.weight(.semibold)).foregroundStyle(.tertiary)
+            }
+            .padding(14)
+            .background(Brand.card, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        }
+        .buttonStyle(.plain)
     }
 
     private var header: some View {

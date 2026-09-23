@@ -61,11 +61,20 @@ export async function orderNumber(env: Env, e164: string): Promise<string> {
 }
 
 /** Releases a number back to Telnyx so it stops costing money. */
-export async function releaseNumber(env: Env, e164: string): Promise<void> {
+/** Deletes a number from Telnyx so it stops costing money. Returns false if it was left alone. */
+export async function releaseNumber(env: Env, e164: string): Promise<boolean> {
   const params = new URLSearchParams({ "filter[phone_number]": e164 });
-  const found = await call<{ data: { id: string }[] }>(env, `/phone_numbers?${params}`);
-  const id = found.data[0]?.id;
-  if (id) await call(env, `/phone_numbers/${id}`, { method: "DELETE" });
+  const found = await call<{ data: { id: string; connection_id?: string | null }[] }>(env, `/phone_numbers?${params}`);
+  const number = found.data[0];
+  if (!number) return true; // already gone
+  // Only numbers on the Faxlane Fax Application are ever deleted. Numbers used by anything
+  // else on the same Telnyx account (for example the call recorder) are left alone.
+  if (number.connection_id !== env.TELNYX_FAX_APP_ID) {
+    console.error("Refusing to release a number that isn't on the Faxlane Fax Application", e164);
+    return false;
+  }
+  await call(env, `/phone_numbers/${number.id}`, { method: "DELETE" });
+  return true;
 }
 
 /** Downloads a received fax PDF (Telnyx media links are temporary). */

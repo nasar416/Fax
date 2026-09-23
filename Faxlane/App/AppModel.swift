@@ -37,6 +37,10 @@ final class AppModel {
     var numbers: [FaxNumber] = MockData.numbers
     var sendingNumberID: UUID?
     var faxNumber: String? { plan == nil ? nil : (numbers.first?.number ?? "+1 (555) 014-2290") }
+    /// When the plan's current period ends (renewal or expiry date).
+    var planExpiresAt: Date?
+    /// The number kept for 14 days after the plan ended, if any.
+    var heldNumber: FaxNumber? { plan == nil ? numbers.first { $0.releaseAfter != nil } : nil }
 
     // Settings
     var deliveryNotifications = true
@@ -139,6 +143,13 @@ final class AppModel {
             pagesUsed = account.pagesUsed
         }
         extraPages = account.extraPages
+        planExpiresAt = account.planExpiresAt.map { Date(timeIntervalSince1970: TimeInterval($0)) }
+        if let list = account.numbers {
+            numbers = list.map { n in
+                FaxNumber(number: n.e164, label: n.label.isEmpty ? String(localized: "Main") : n.label, sharedWithTeam: false,
+                          releaseAfter: n.releaseAfter.map { Date(timeIntervalSince1970: TimeInterval($0)) })
+            }
+        }
     }
 
     var appVersion: String { Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0.0" }

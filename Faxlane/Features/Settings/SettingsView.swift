@@ -155,6 +155,10 @@ struct AccountView: View {
             }
             Section("Plan and usage") {
                 LabeledContent("Plan") { if let p = model.plan { Text(p.name) } else { Text("Free") } }
+                if model.plan != nil, let end = model.planExpiresAt {
+                    // Apple renews on this date unless the subscription was cancelled.
+                    LabeledContent("Renews or ends", value: end.formatted(date: .abbreviated, time: .omitted))
+                }
                 LabeledContent("Pages left", value: "\(model.pagesLeft)")
                 Button("Manage subscription") { showManage = true }
                 NavigationLink("Cancel subscription") { WinBackView() }

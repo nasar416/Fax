@@ -10,7 +10,7 @@ export function purchaseRoutes(router: Router, env: Env) {
     const account = await requireAccount(request, env);
     await syncPurchases(env, account);
     const updated = (await env.DB.prepare("SELECT * FROM accounts WHERE id = ?").bind(account.id).first<AccountRow>())!;
-    const { results } = await env.DB.prepare("SELECT e164, label FROM numbers WHERE account_id = ?").bind(account.id).all<{ e164: string; label: string }>();
+    const { results } = await env.DB.prepare("SELECT e164, label, release_after FROM numbers WHERE account_id = ? ORDER BY created_at").bind(account.id).all<{ e164: string; label: string; release_after: number | null }>();
     return json(publicAccount(updated, results));
   });
 

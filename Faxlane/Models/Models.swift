@@ -84,6 +84,8 @@ struct FaxNumber: Identifiable, Hashable, Codable {
     var number: String
     var label: String
     var sharedWithTeam: Bool
+    /// Set while the number is held after the plan ended. It is released at this date.
+    var releaseAfter: Date? = nil
 }
 
 // MARK: - Plans

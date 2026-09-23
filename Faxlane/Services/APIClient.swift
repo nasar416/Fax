@@ -28,6 +28,16 @@ struct APIClient: Sendable {
         let pagesLeft: Int
         let extraPages: Int
         let sendingNumber: String?
+        /// When the current plan period ends (Unix seconds). Nil for free accounts.
+        let planExpiresAt: Int?
+        let numbers: [NumberDTO]?
+    }
+
+    struct NumberDTO: Decodable {
+        let e164: String
+        let label: String
+        /// Set while the number is on hold after the plan ended; released at this time.
+        let releaseAfter: Int?
     }
 
     struct FaxDTO: Decodable {

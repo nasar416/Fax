@@ -1,11 +1,27 @@
 import type { Env } from "./env";
 import { now } from "./http";
 import { cycleSeconds, type Period } from "./plans";
+import type { AccountRow } from "./env";
+import { syncPurchases } from "./revenuecat";
 import { releaseNumber } from "./telnyx";
 
 /** Daily housekeeping. */
 export async function runDaily(env: Env): Promise<void> {
   const ts = now();
+
+  // 0. Safety net for missed RevenueCat webhooks: re-check plans that passed their expiry date
+  //    (1 hour of slack for Apple's renewal). RevenueCat decides: renewed plans get a new date,
+  //    ended plans are closed and their numbers go on the 14-day hold.
+  const { results: lapsed } = await env.DB.prepare(
+    "SELECT * FROM accounts WHERE plan IS NOT NULL AND plan_expires_at IS NOT NULL AND plan_expires_at < ? LIMIT 200",
+  ).bind(ts - 3600).all<AccountRow>();
+  for (const a of lapsed) {
+    try {
+      await syncPurchases(env, a);
+    } catch (err) {
+      console.error("Expiry check failed", a.id, err); // tried again tomorrow
+    }
+  }
 
   // 1. New page cycle for active plans (weekly plans every 7 days, others every 30 days).
   const { results: due } = await env.DB.prepare("SELECT id, period, cycle_start FROM accounts WHERE plan IS NOT NULL")
@@ -33,8 +49,10 @@ export async function runDaily(env: Env): Promise<void> {
     .bind(ts).all<{ e164: string }>();
   for (const n of expired) {
     try {
-      await releaseNumber(env, n.e164);
-      await env.DB.prepare("DELETE FROM numbers WHERE e164 = ?").bind(n.e164).run();
+      if (n.e164 === env.SHARED_FROM_NUMBER) continue; // the shared number is never released
+      if (await releaseNumber(env, n.e164)) {
+        await env.DB.prepare("DELETE FROM numbers WHERE e164 = ?").bind(n.e164).run();
+      }
     } catch (err) {
       console.error("Number release failed", n.e164, err);
     }

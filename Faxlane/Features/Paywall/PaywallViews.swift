@@ -152,6 +152,11 @@ struct TopUpView: View {
 struct NumberGraceView: View {
     @Environment(AppModel.self) private var model
     @State private var showPaywall = false
+    private var held: FaxNumber? { model.heldNumber ?? model.numbers.first }
+    private var daysLeft: Int {
+        guard let end = held?.releaseAfter else { return 14 }
+        return min(max(Int(ceil(end.timeIntervalSinceNow / 86400)), 0), 14)
+    }
     var body: some View {
         List {
             Section {
@@ -162,9 +167,9 @@ struct NumberGraceView: View {
             }
             Section {
                 VStack(alignment: .leading, spacing: 10) {
-                    PhoneText(number: model.numbers.first?.number ?? "").font(.title2.weight(.semibold))
-                    ProgressView(value: 9, total: 14).tint(Brand.lightBlue)
-                    Text("9 days left").font(.footnote.weight(.semibold)).foregroundStyle(Brand.lightBlue)
+                    PhoneText(number: held?.number ?? "").font(.title2.weight(.semibold))
+                    ProgressView(value: Double(14 - daysLeft), total: 14).tint(Brand.lightBlue)
+                    Text("\(daysLeft) days left").font(.footnote.weight(.semibold)).foregroundStyle(Brand.lightBlue)
                 }
                 .foregroundStyle(.white)
                 .listRowBackground(Brand.navy)
