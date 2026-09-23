@@ -60,7 +60,6 @@ Shared/           FaxActivityAttributes (used by both targets)
 | Deploy the backend in [`server/`](server/README.md) (Cloudflare Worker + D1 + R2 + Telnyx). Then set `FaxlaneAPIBaseURL` in `project.yml` to the Worker URL. While it's empty the app runs on sample data. The Telnyx key stays on the server. | `server/`, `project.yml` |
 | Remote config is read from the server's `/v1/config` (the `config` table in D1). Change a row there to show an announcement, turn on maintenance, or force an update. No App Store update is needed. | `server/`, `Services/RemoteConfig.swift` |
 | Set the App Store ID for the force-update button. | `Features/System/SystemViews.swift` |
-| Add the app icon (light, dark and tinted, 1024×1024) to `AppIcon`. | `Resources/Assets.xcassets` |
 | Optional: add `BricolageGrotesque-ExtraBold.ttf` to the target and `UIAppFonts` for large titles. Without it, SF Pro Rounded is used. | `Design/Theme.swift` |
 | Add the other 18 languages to `Localizable.xcstrings`. English and Arabic are included. Right-to-left layout works automatically. | `Resources/` |
 
@@ -72,3 +71,15 @@ Shared/           FaxActivityAttributes (used by both targets)
 - **Live Activity:** starts when a fax is sent, updates after each page, and ends as delivered or failed. The app updates it locally, so no push server is needed.
 - **Support:** "Contact support" opens the user's Mail app addressed to `developer.nasar416@gmail.com`. You can change the address in remote config.
 - **Contacts import:** reads only fax numbers from the phone's contacts. Nothing is uploaded.
+
+## App Store Connect
+
+Already set up for app **Faxlane** (Apple ID 6815172582, bundle `com.faxlane.app`):
+
+- 13 in-app purchases (10 subscriptions in "Faxlane Plans", 3 page packs), priced in all 175 countries, with a 3-day free trial on weekly plans. All are *Ready to Submit*.
+- English and Arabic name, subtitle, description, keywords, promotional text, privacy policy, support and marketing links.
+- Category (Business, Productivity), age rating 4+, free price, all countries, App Review contact and notes.
+- Screenshots (6.9" iPhone) in `AppStore/screenshots/`, uploaded for both languages.
+- RevenueCat is connected with the App Store Connect API key and the in-app purchase key.
+
+Still to do in App Store Connect: the App Privacy questions (not available in Apple's API), and selecting the 13 in-app purchases on the version page when you submit the first build.
