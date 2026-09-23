@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { pageLimit, pagesLeft, parseProductId, splitCharge } from "../src/plans";
-import { isAllowedCountry, isBlockedDestination, pageMultiplier, toE164 } from "../src/phone";
+import { countPdfPages, isAllowedCountry, isBlockedDestination, pageMultiplier, toE164 } from "../src/phone";
 import { hmacSign, signedMediaUrl, verifyMediaSignature, verifyTelnyxSignature, bytesToBase64Url } from "../src/crypto";
 import { HttpError, Router, json } from "../src/http";
 
@@ -84,5 +84,25 @@ describe("router", () => {
     expect(await res.json()).toEqual({ id: "abc" });
     await expect(r.handle(new Request("https://x/v1/nope"))).rejects.toBeInstanceOf(HttpError);
     await expect(r.handle(new Request("https://x/v1/faxes/abc", { method: "DELETE" }))).rejects.toMatchObject({ status: 405 });
+  });
+});
+
+describe("toll-fraud and cost protection", () => {
+  it("treats Caribbean +1 numbers as foreign and blocks them", () => {
+    expect(isBlockedDestination("+18765550123")).toBe(true); // Jamaica
+    expect(isBlockedDestination("+18095550123")).toBe(true); // Dominican Republic
+    expect(isBlockedDestination("+15005550123")).toBe(true); // personal 5XX
+    expect(isBlockedDestination("+12125550123")).toBe(false); // New York
+    expect(isBlockedDestination("+17875550123")).toBe(false); // Puerto Rico (US)
+  });
+  it("counts pages by destination cost", () => {
+    expect(pageMultiplier("+12125550123")).toBe(1);
+    expect(pageMultiplier("+442079460958")).toBe(3);
+    expect(pageMultiplier("+97145550123")).toBe(10);
+    expect(pageMultiplier("+8801711000000")).toBe(10);
+  });
+  it("counts PDF pages without trusting the app", () => {
+    const pdf = new TextEncoder().encode("%PDF-1.4 1 0 obj << /Type /Pages /Count 2 >> 2 0 obj << /Type /Page >> 3 0 obj <</Type/Page>>").buffer;
+    expect(countPdfPages(pdf)).toBe(2);
   });
 });

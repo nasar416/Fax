@@ -14,7 +14,7 @@ export function accountRoutes(router: Router, env: Env) {
   router.on("POST", "/v1/accounts", async (request) => {
     const body = await readJson<{ token?: string }>(request);
     if (!body.token || !/^[0-9a-fA-F-]{36}$/.test(body.token)) throw new HttpError(400, "invalid_token");
-    const account = await registerToken(env, body.token);
+    const account = await registerToken(env, body.token, request.headers.get("cf-connecting-ip") ?? "");
     return json(publicAccount(account, await numbersOf(env, account.id)));
   });
 

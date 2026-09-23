@@ -219,7 +219,7 @@ final class AppModel {
 
     // MARK: Send
 
-    /// Pages this fax will use. International pages count 3×.
+    /// Pages this fax will use. International pages count 3× or 10×, by country.
     func cost(pages: Int, cover: Bool, country: Country) -> Int { (pages + (cover ? 1 : 0)) * country.pageMultiplier }
 
     func send(recipient: String, number: String, pages: [DraftPage], cover: CoverSheet, cost: Int) {

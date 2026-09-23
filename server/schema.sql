@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS accounts (
   pages_used INTEGER NOT NULL DEFAULT 0,
   extra_pages INTEGER NOT NULL DEFAULT 0,
   free_pages_left INTEGER NOT NULL DEFAULT 3,
+  in_trial INTEGER NOT NULL DEFAULT 0, -- free trial: pages capped, no own number until paid
   retention_days INTEGER NOT NULL DEFAULT 30,
   paused_until INTEGER,
   share_usage INTEGER NOT NULL DEFAULT 0,
@@ -79,4 +80,12 @@ CREATE TABLE IF NOT EXISTS transactions (
 CREATE TABLE IF NOT EXISTS config (
   key TEXT PRIMARY KEY,
   value TEXT NOT NULL
+);
+
+-- New accounts per network per day. After 5, new accounts get no free pages (stops free-fax farming).
+CREATE TABLE IF NOT EXISTS signups (
+  ip_hash TEXT NOT NULL,
+  day INTEGER NOT NULL,
+  count INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (ip_hash, day)
 );

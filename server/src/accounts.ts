@@ -1,7 +1,7 @@
 import type { AccountRow, Env } from "./env";
 import { sha256Hex, randomId } from "./crypto";
 import { HttpError, now } from "./http";
-import { cycleSeconds, pageLimit, pagesLeft, splitCharge, type Charge, type Period, type Plan } from "./plans";
+import { cycleSeconds, pagesLeft, planLimit, splitCharge, type Charge, type Period, type Plan } from "./plans";
 
 /** The app sends its account token (a random UUID kept in the Keychain) as a bearer token. */
 export async function requireAccount(request: Request, env: Env): Promise<AccountRow> {
@@ -15,8 +15,12 @@ export async function requireAccount(request: Request, env: Env): Promise<Accoun
   return row;
 }
 
-/** Creates a guest account for a new token, or returns the existing one. */
-export async function registerToken(env: Env, token: string): Promise<AccountRow> {
+/**
+ * Creates a guest account for a new token, or returns the existing one.
+ * `network` is the caller's IP. After 5 new accounts from one network in a day, new accounts
+ * start with no free pages, so free faxes can't be farmed by making accounts in a loop.
+ */
+export async function registerToken(env: Env, token: string, network = ""): Promise<AccountRow> {
   const hash = await sha256Hex(token.toLowerCase());
   const existing = await env.DB.prepare(
     "SELECT a.* FROM tokens t JOIN accounts a ON a.id = t.account_id WHERE t.token_hash = ?",
@@ -24,8 +28,14 @@ export async function registerToken(env: Env, token: string): Promise<AccountRow
   if (existing) return existing;
   const id = randomId();
   const ts = now();
+  const day = Math.floor(ts / 86400);
+  const ipHash = await sha256Hex(`signup:${network}`);
+  await env.DB.prepare("INSERT INTO signups (ip_hash, day, count) VALUES (?, ?, 1) ON CONFLICT (ip_hash, day) DO UPDATE SET count = count + 1")
+    .bind(ipHash, day).run();
+  const seen = await env.DB.prepare("SELECT count FROM signups WHERE ip_hash = ? AND day = ?").bind(ipHash, day).first<{ count: number }>();
+  const freePages = (seen?.count ?? 1) > 5 ? 0 : 3;
   await env.DB.batch([
-    env.DB.prepare("INSERT INTO accounts (id, created_at, cycle_start) VALUES (?, ?, ?)").bind(id, ts, ts),
+    env.DB.prepare("INSERT INTO accounts (id, created_at, cycle_start, free_pages_left) VALUES (?, ?, ?, ?)").bind(id, ts, ts, freePages),
     env.DB.prepare("INSERT INTO tokens (token_hash, account_id, created_at) VALUES (?, ?, ?)").bind(hash, id, ts),
   ]);
   return (await env.DB.prepare("SELECT * FROM accounts WHERE id = ?").bind(id).first<AccountRow>())!;
@@ -38,6 +48,7 @@ export function balanceOf(a: AccountRow) {
     pagesUsed: a.pages_used,
     extraPages: a.extra_pages,
     freePagesLeft: a.free_pages_left,
+    inTrial: !!a.in_trial,
   };
 }
 
@@ -51,7 +62,8 @@ export function publicAccount(a: AccountRow, rows: { e164: string; label: string
     plan: b.plan,
     period: b.period,
     planExpiresAt: a.plan_expires_at,
-    pageLimit: b.plan && b.period ? pageLimit(b.plan, b.period) : 3,
+    pageLimit: b.plan && b.period ? planLimit(b) : 3,
+    inTrial: !!a.in_trial,
     pagesUsed: a.pages_used,
     pagesLeft: pagesLeft(b),
     extraPages: a.extra_pages,
@@ -81,6 +93,17 @@ export async function charge(env: Env, accountId: string, cost: number): Promise
     if (res.meta.changes === 1) return split;
   }
   throw new HttpError(409, "busy", "Please try again.");
+}
+
+/**
+ * Takes pages that were already used on the fax network (the real page count was higher than
+ * charged). Never refused: if the balance is short, page-pack pages go below zero and the next
+ * purchase covers them.
+ */
+export async function chargeOverage(env: Env, accountId: string, cost: number): Promise<void> {
+  if (cost <= 0) return;
+  if (await charge(env, accountId, cost)) return;
+  await env.DB.prepare("UPDATE accounts SET extra_pages = extra_pages - ? WHERE id = ?").bind(cost, accountId).run();
 }
 
 /** Gives pages back (failed fax, or the real page count was lower). */

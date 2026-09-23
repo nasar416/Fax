@@ -89,11 +89,15 @@ async function telnyxEvent(event_type: string, payload: object) {
   return res.status;
 }
 
-function faxForm(to: string, pages: number) {
+function pdfWithPages(n: number) {
+  return `%PDF-1.4\n${Array.from({ length: n }, (_, i) => `${i + 3} 0 obj << /Type /Page >> endobj`).join("\n")}\n1 0 obj << /Type /Pages /Count ${n} >> endobj\n%%EOF`;
+}
+
+function faxForm(to: string, pages: number, file = pdfWithPages(1)) {
   const form = new FormData();
   form.set("to", to);
   form.set("pages", String(pages));
-  form.set("file", new File([new Uint8Array([37, 80, 68, 70])], "fax.pdf", { type: "application/pdf" }));
+  form.set("file", new File([file], "fax.pdf", { type: "application/pdf" }));
   return form;
 }
 
@@ -287,6 +291,44 @@ describe("Faxlane API", () => {
     d1.raw.prepare("UPDATE accounts SET plan = 'basic', period = 'monthly', pages_used = 80, plan_expires_at = NULL, cycle_start = ?").run(Math.floor(Date.now() / 1000) - 31 * 86400);
     await runDaily(env);
     expect((await call("GET", "/v1/me")).body.pagesUsed).toBe(0);
+  });
+
+  it("charges the real page count of the PDF, not the app's claim", async () => {
+    d1.raw.prepare("UPDATE accounts SET plan = 'basic', period = 'monthly', in_trial = 0, pages_used = 0, extra_pages = 0").run();
+    const res = await call("POST", "/v1/faxes", faxForm("+1 212 555 0101", 1, pdfWithPages(5)));
+    expect(res.body.cost).toBe(5);
+  });
+
+  it("counts only the pages that went through when a fax stops half way", async () => {
+    const before = (await call("GET", "/v1/me")).body.pagesUsed;
+    const res = await call("POST", "/v1/faxes", faxForm("+1 212 555 0102", 4, pdfWithPages(4)));
+    const telnyxId = d1.raw.prepare("SELECT telnyx_fax_id FROM faxes WHERE id = ?").get(res.body.id) as { telnyx_fax_id: string };
+    await telnyxEvent("fax.failed", { fax_id: telnyxId.telnyx_fax_id, page_count: 1, failure_reason: "user_busy" });
+    const fax = (await call("GET", `/v1/faxes/${res.body.id}`)).body;
+    expect(fax.cost).toBe(1);
+    expect(fax.failureReason).toMatch(/after 1 page/);
+    expect((await call("GET", "/v1/me")).body.pagesUsed).toBe(before + 1);
+  });
+
+  it("caps pages and holds back the fax number during a free trial", async () => {
+    d1.raw.prepare("UPDATE accounts SET plan = 'premium', period = 'weekly', in_trial = 1, pages_used = 0, extra_pages = 0").run();
+    const me = (await call("GET", "/v1/me")).body;
+    expect(me.pageLimit).toBe(10);
+    expect(me.inTrial).toBe(true);
+    const order = await call("POST", "/v1/numbers", { number: "+1 212 555 0199" });
+    expect(order.body.error).toBe("trial_number");
+    d1.raw.prepare("UPDATE accounts SET in_trial = 0").run();
+  });
+
+  it("gives no free pages after 5 new accounts from one network in a day", async () => {
+    const make = async (i: number) => (await worker.fetch(new Request("https://api.faxlane.test/v1/accounts", {
+      method: "POST", headers: { "content-type": "application/json", "cf-connecting-ip": "203.0.113.9" },
+      body: JSON.stringify({ token: `00000000-0000-4000-8000-00000000000${i}` }),
+    }), env)).json() as any;
+    const pages = [];
+    for (let i = 1; i <= 6; i++) pages.push((await make(i)).pagesLeft);
+    expect(pages).toEqual([3, 3, 3, 3, 3, 0]);
+    expect((await make(1)).pagesLeft).toBe(3); // the same device again is not a new account
   });
 
   it("deletes the account and every file", async () => {

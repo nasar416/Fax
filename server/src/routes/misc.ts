@@ -76,6 +76,8 @@ export function miscRoutes(router: Router, env: Env) {
   router.on("POST", "/v1/numbers", async (request) => {
     const account = await requireAccount(request, env);
     if (!account.plan) throw new HttpError(402, "plan_required", "Choose a plan to get your own fax number.");
+    // A number costs us money every month, so it comes with the first paid period, not the free trial.
+    if (account.in_trial) throw new HttpError(402, "trial_number", "Your own fax number is ready once your free trial ends and your plan starts.");
     const body = await readJson<{ number?: string; label?: string }>(request);
     const e164 = toE164(body.number ?? "");
     if (!e164) throw new HttpError(400, "invalid_number");

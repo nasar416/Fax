@@ -66,7 +66,7 @@ Shared/           FaxActivityAttributes (used by both targets)
 
 - **Accounts:** a guest account token is created on first launch and stored in the Keychain (with iCloud Keychain sync) and in the iCloud key-value store. After a reinstall the token is found again and the "Welcome back" screen shows. Sign in with Apple makes the account permanent.
 - **Purchases:** the app buys through RevenueCat with the Faxlane account ID as the RevenueCat App User ID. After each purchase or restore it asks the server to sync, and the server reads the customer straight from RevenueCat. Renewals, expiry and refunds reach the server through the RevenueCat webhook. Without an SDK key (and in Debug builds) purchases are simulated so the design can be tried.
-- **Pages:** sent and received pages both count. International pages count as 3. Failed faxes don't use pages.
+- **Pages:** sent and received pages both count. International pages count 3× (Western Europe, UK, Australia, Japan and similar) or 10× (other countries), matching what those calls cost. If a fax fails, only pages that already went through count. During a free trial the plan is capped at 10 pages and the own number comes with the first paid period.
 - **Live Activity:** starts when a fax is sent, updates after each page, and ends as delivered or failed. The app updates it locally, so no push server is needed.
 - **Support:** "Contact support" opens the user's Mail app addressed to `developer.nasar416@gmail.com`. You can change the address in remote config.
 - **Contacts import:** reads only fax numbers from the phone's contacts. Nothing is uploaded.

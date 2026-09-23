@@ -173,8 +173,14 @@ struct Country: Identifiable, Hashable {
     let code: String
     let name: String
     let dial: String
-    /// International pages count as 3 pages.
-    var pageMultiplier: Int { code == "US" || code == "CA" ? 1 : 3 }
+    /// Must match the server (server/src/phone.ts): US/Canada 1×, low-cost countries 3×, the rest 10×,
+    /// because fax calls to those countries cost much more per minute.
+    var pageMultiplier: Int {
+        if code == "US" || code == "CA" { return 1 }
+        let lowCost = ["+44", "+353", "+49", "+33", "+39", "+34", "+31", "+32", "+41", "+43", "+45", "+46", "+47",
+                       "+358", "+351", "+48", "+420", "+61", "+64", "+81", "+82", "+852", "+65", "+972"]
+        return lowCost.contains(dial) ? 3 : 10
+    }
     var id: String { code }
     var flag: String {
         var scalars = String.UnicodeScalarView()

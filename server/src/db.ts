@@ -27,6 +27,10 @@ export class Database extends DurableObject {
     super(ctx, env as never);
     this.sql = ctx.storage.sql;
     this.sql.exec(schema); // CREATE TABLE IF NOT EXISTS: safe on every start
+    // Columns added after the first deploy. Adding one that exists throws, which is fine.
+    for (const change of ["ALTER TABLE accounts ADD COLUMN in_trial INTEGER NOT NULL DEFAULT 0"]) {
+      try { this.sql.exec(change); } catch { /* already there */ }
+    }
   }
 
   private exec(q: Query, mode: Mode): unknown {

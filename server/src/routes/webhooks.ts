@@ -1,5 +1,5 @@
 import type { AccountRow, Env, FaxRow } from "../env";
-import { charge, refund } from "../accounts";
+import { charge, chargeOverage, refund } from "../accounts";
 import { randomId, verifyTelnyxSignature } from "../crypto";
 import { HttpError, json, now, type Router } from "../http";
 import { pageMultiplier, toE164 } from "../phone";
@@ -57,20 +57,30 @@ export function webhookRoutes(router: Router, env: Env) {
         const fromExtra = Math.min(back - fromPlan, fax.charge_extra);
         await refund(env, fax.account_id, { fromPlan, fromExtra, fromFree: back - fromPlan - fromExtra });
       } else if (realCost > fax.cost) {
-        await charge(env, fax.account_id, realCost - fax.cost); // best effort; never blocks delivery
+        await chargeOverage(env, fax.account_id, realCost - fax.cost); // the pages were really sent
       }
       await env.DB.prepare("UPDATE faxes SET state = 'delivered', pages = ?, cost = ?, updated_at = ? WHERE id = ?")
         .bind(realPages, realCost, now(), fax.id).run();
     } else if (type === "fax.failed" && fax.state !== "failed") {
-      await refund(env, fax.account_id, { fromPlan: fax.charge_plan, fromExtra: fax.charge_extra, fromFree: fax.charge_free });
-      await env.DB.prepare("UPDATE faxes SET state = 'failed', cost = 0, failure_reason = ?, updated_at = ? WHERE id = ?")
-        .bind(readableFailure(p.failure_reason), now(), fax.id).run();
+      // Pages that already went through were paid for on the fax network, so they count.
+      // Everything else is given back (plan pages first).
+      const sentPages = Math.min(Math.max(p.page_count ?? 0, 0), fax.pages);
+      const kept = Math.min(sentPages * pageMultiplier(fax.party_number), fax.cost);
+      const back = fax.cost - kept;
+      const fromPlan = Math.min(back, fax.charge_plan);
+      const fromExtra = Math.min(back - fromPlan, fax.charge_extra);
+      await refund(env, fax.account_id, { fromPlan, fromExtra, fromFree: back - fromPlan - fromExtra });
+      await env.DB.prepare("UPDATE faxes SET state = 'failed', cost = ?, failure_reason = ?, updated_at = ? WHERE id = ?")
+        .bind(kept, readableFailure(p.failure_reason, sentPages), now(), fax.id).run();
     }
     return json({ ok: true });
   });
 }
 
-function readableFailure(reason?: string): string {
+function readableFailure(reason: string | undefined, sentPages: number): string {
+  if (sentPages > 0) {
+    return `The fax stopped after ${sentPages} ${sentPages === 1 ? "page" : "pages"}. Only the pages that went through were counted.`;
+  }
   switch (reason) {
     case "user_busy": return "The line was busy. No pages were used from your plan.";
     case "no_answer": return "Nobody answered. No pages were used from your plan.";

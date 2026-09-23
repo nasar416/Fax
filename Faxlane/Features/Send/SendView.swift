@@ -45,7 +45,7 @@ struct SendView: View {
                         .foregroundStyle(.secondary)
                 }
                 if country.pageMultiplier > 1 {
-                    Text("International pages count as 3 pages.").font(.footnote).foregroundStyle(Brand.pending)
+                    Text("Each page to \(country.name) counts as \(country.pageMultiplier) pages.").font(.footnote).foregroundStyle(Brand.pending)
                 }
             }
 

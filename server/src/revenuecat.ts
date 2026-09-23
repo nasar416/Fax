@@ -7,7 +7,7 @@ const API = "https://api.revenuecat.com/v2";
 
 /** The parts of RevenueCat's API v2 answers that Faxlane uses. Times are in milliseconds. */
 export interface Subscriber {
-  subscriptions: { product: string; givesAccess: boolean; endsAt: number | null }[];
+  subscriptions: { product: string; givesAccess: boolean; endsAt: number | null; trial: boolean }[];
   purchases: { id: string; storeId: string | null; product: string; refunded: boolean }[];
 }
 
@@ -52,11 +52,11 @@ async function storeIdentifier(env: Env, rcProductId: string): Promise<string | 
  */
 export async function getSubscriber(env: Env, appUserId: string): Promise<Subscriber> {
   const id = encodeURIComponent(appUserId);
-  const subs = await list<{ product_id: string; gives_access: boolean; current_period_ends_at: number | null }>(env, `/customers/${id}/subscriptions?limit=100`);
+  const subs = await list<{ product_id: string; gives_access: boolean; current_period_ends_at: number | null; status?: string }>(env, `/customers/${id}/subscriptions?limit=100`);
   const buys = await list<{ id: string; product_id: string; status: string; store_purchase_identifier?: string | null }>(env, `/customers/${id}/purchases?limit=100`);
   return {
     subscriptions: await Promise.all(subs.map(async (s) => ({
-      product: (await storeIdentifier(env, s.product_id)) ?? "", givesAccess: s.gives_access, endsAt: s.current_period_ends_at,
+      product: (await storeIdentifier(env, s.product_id)) ?? "", givesAccess: s.gives_access, endsAt: s.current_period_ends_at, trial: s.status === "trialing",
     }))),
     purchases: await Promise.all(buys.map(async (p) => ({
       id: p.id, storeId: p.store_purchase_identifier ?? null, product: (await storeIdentifier(env, p.product_id)) ?? "", refunded: p.status === "refunded",
@@ -92,13 +92,13 @@ export async function syncPurchases(env: Env, account: AccountRow): Promise<void
   }
 
   // Subscriptions: pick the highest active plan.
-  let best: { plan: Plan; period: Period; expiresAt: number | null } | null = null;
+  let best: { plan: Plan; period: Period; expiresAt: number | null; trial: boolean } | null = null;
   for (const sub of subscriber.subscriptions) {
     const product = parseProductId(sub.product);
     if (product?.kind !== "subscription" || !sub.givesAccess) continue;
     const expiresAt = sub.endsAt ? Math.floor(sub.endsAt / 1000) : null;
     if (!best || RANK[product.plan] > RANK[best.plan] || (RANK[product.plan] === RANK[best.plan] && (expiresAt ?? Infinity) > (best.expiresAt ?? Infinity))) {
-      best = { plan: product.plan, period: product.period, expiresAt };
+      best = { plan: product.plan, period: product.period, expiresAt, trial: sub.trial };
     }
   }
 
@@ -106,15 +106,15 @@ export async function syncPurchases(env: Env, account: AccountRow): Promise<void
     // A new plan (or a change of plan) starts a fresh page cycle. Renewals don't.
     const isNew = account.plan !== best.plan || account.period !== best.period;
     await env.DB.prepare(
-      `UPDATE accounts SET plan = ?, period = ?, plan_expires_at = ?,
+      `UPDATE accounts SET plan = ?, period = ?, plan_expires_at = ?, in_trial = ?,
        cycle_start = CASE WHEN ? THEN ? ELSE cycle_start END, pages_used = CASE WHEN ? THEN 0 ELSE pages_used END
        WHERE id = ?`,
-    ).bind(best.plan, best.period, best.expiresAt, isNew ? 1 : 0, ts, isNew ? 1 : 0, account.id).run();
+    ).bind(best.plan, best.period, best.expiresAt, best.trial ? 1 : 0, isNew ? 1 : 0, ts, isNew ? 1 : 0, account.id).run();
     await env.DB.prepare("UPDATE numbers SET release_after = NULL WHERE account_id = ?").bind(account.id).run();
   } else if (account.plan) {
     // Plan ended: hold the numbers for 14 days, then the daily job releases them.
     await env.DB.batch([
-      env.DB.prepare("UPDATE accounts SET plan = NULL, period = NULL WHERE id = ?").bind(account.id),
+      env.DB.prepare("UPDATE accounts SET plan = NULL, period = NULL, in_trial = 0 WHERE id = ?").bind(account.id),
       env.DB.prepare("UPDATE numbers SET release_after = ? WHERE account_id = ? AND release_after IS NULL").bind(ts + 14 * 86400, account.id),
     ]);
   }

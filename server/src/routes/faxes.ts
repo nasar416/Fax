@@ -2,7 +2,7 @@ import type { AccountRow, Env, FaxRow } from "../env";
 import { charge, refund, requireAccount } from "../accounts";
 import { randomId, signedMediaUrl } from "../crypto";
 import { HttpError, json, now, readJson, type Router } from "../http";
-import { isAllowedCountry, isBlockedDestination, pageMultiplier, toE164 } from "../phone";
+import { countPdfPages, isAllowedCountry, isBlockedDestination, pageMultiplier, toE164 } from "../phone";
 import { sendFax } from "../telnyx";
 
 const MAX_PDF_BYTES = 20 * 1024 * 1024;
@@ -59,15 +59,19 @@ export function faxRoutes(router: Router, env: Env) {
     const account = await requireAccount(request, env);
     const form = await request.formData().catch(() => { throw new HttpError(400, "invalid_form"); });
     const to = toE164(String(form.get("to") ?? ""));
-    const pages = Number(form.get("pages") ?? 0);
+    const claimedPages = Number(form.get("pages") ?? 0);
     const file: unknown = form.get("file");
     if (!to) throw new HttpError(400, "invalid_number", "That doesn’t look like a fax number.");
     if (!isAllowedCountry(to, env.ALLOWED_DIAL_CODES) || isBlockedDestination(to)) {
       throw new HttpError(400, "destination_not_supported", "Faxlane can’t send faxes to this number.");
     }
-    if (!Number.isInteger(pages) || pages < 1 || pages > MAX_PAGES) throw new HttpError(400, "invalid_page_count");
+    if (!Number.isInteger(claimedPages) || claimedPages < 1 || claimedPages > MAX_PAGES) throw new HttpError(400, "invalid_page_count");
     if (!(file instanceof File) || file.type !== "application/pdf") throw new HttpError(400, "pdf_required", "Attach one PDF.");
     if (file.size > MAX_PDF_BYTES) throw new HttpError(413, "file_too_large", "The PDF is larger than 20 MB.");
+    const pdf = await file.arrayBuffer();
+    if (new TextDecoder("latin1").decode(pdf.slice(0, 5)) !== "%PDF-") throw new HttpError(400, "pdf_required", "Attach one PDF.");
+    const pages = Math.max(claimedPages, countPdfPages(pdf));
+    if (pages > MAX_PAGES) throw new HttpError(400, "too_many_pages", `A fax can have up to ${MAX_PAGES} pages.`);
 
     const since = now() - 86400;
     const sentToday = await env.DB.prepare("SELECT COUNT(*) AS n FROM faxes WHERE account_id = ? AND direction = 'sent' AND created_at > ?")
@@ -84,7 +88,7 @@ export function faxRoutes(router: Router, env: Env) {
       ? account.sending_number ?? (await env.DB.prepare("SELECT e164 FROM numbers WHERE account_id = ? ORDER BY created_at LIMIT 1").bind(account.id).first<{ e164: string }>())?.e164 ?? env.SHARED_FROM_NUMBER
       : env.SHARED_FROM_NUMBER;
     const ts = now();
-    await env.FAXES.put(key, await file.arrayBuffer(), { httpMetadata: { contentType: "application/pdf" } });
+    await env.FAXES.put(key, pdf, { httpMetadata: { contentType: "application/pdf" } });
     await env.DB.prepare(
       `INSERT INTO faxes (id, account_id, direction, party_number, own_number, pages, cost, charge_plan, charge_extra, charge_free, state, r2_key, created_at, updated_at)
        VALUES (?, ?, 'sent', ?, ?, ?, ?, ?, ?, ?, 'queued', ?, ?, ?)`,

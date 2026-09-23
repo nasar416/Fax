@@ -36,12 +36,15 @@ The daily cron job does three things:
 
 Built-in protections:
 
-- Pages are charged atomically.
-- At most 50 faxes a day per account, and 50 pages per fax.
-- Faxes only go to countries on the `ALLOWED_DIAL_CODES` list.
-- Premium-rate US numbers (900 and 976) are blocked.
-- Webhook signatures are verified.
-- The app's account tokens are stored only as hashes.
+- Pages are charged atomically, and the server counts the pages in each PDF itself, so an app can't under-report them.
+- Page cost follows call cost: US/Canada 1×, low-cost countries 3×, other allowed countries 10×.
+- Toll fraud: premium, personal and Caribbean +1 area codes are blocked (they look domestic but bill internationally), only countries on `ALLOWED_DIAL_CODES` can be dialed, and the Telnyx outbound profile has its own country whitelist.
+- Free pages: after 5 new accounts from one network in a day, new accounts get no free pages.
+- Free trials: capped at 10 pages and no own number until the first paid period.
+- Failed faxes: pages that already went through count; the rest are given back. Real page counts above the charge are always collected.
+- Missed webhooks: the daily job re-checks plans past their expiry with RevenueCat.
+- Numbers are released only if they are on the Faxlane Fax Application; the shared number never is.
+- At most 50 faxes a day per account, and 50 pages per fax. Webhook signatures are verified. Account tokens are stored only as hashes.
 
 ## Deploy
 

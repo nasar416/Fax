@@ -512,16 +512,6 @@
         }
       }
     },
-    "International pages count as 3 pages.": {
-      "localizations": {
-        "ar": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "الصفحات الدولية تُحتسب 3 صفحات."
-          }
-        }
-      }
-    },
     "Choose recipient": {
       "localizations": {
         "ar": {
@@ -1268,6 +1258,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "جارٍ الإرسال إلى %@"
+          }
+        }
+      }
+    },
+    "Each page to %@ counts as %lld pages.": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "كل صفحة إلى %1$@ تُحتسب %2$lld صفحات."
           }
         }
       }

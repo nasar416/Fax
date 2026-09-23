@@ -45,17 +45,28 @@ export function parseProductId(id: string): Product | null {
   return null;
 }
 
+/** During a free trial only this many plan pages can be used (stops trial farming). */
+export const TRIAL_PAGES = 10;
+
 export interface Balance {
   plan: Plan | null;
   period: Period | null;
   pagesUsed: number;
   extraPages: number;
   freePagesLeft: number;
+  inTrial?: boolean;
+}
+
+/** The plan's page allowance, capped while in a free trial. */
+export function planLimit(b: Balance): number {
+  if (!b.plan || !b.period) return 0;
+  const limit = pageLimit(b.plan, b.period);
+  return b.inTrial ? Math.min(limit, TRIAL_PAGES) : limit;
 }
 
 export function pagesLeft(b: Balance): number {
   if (!b.plan || !b.period) return b.freePagesLeft + Math.max(b.extraPages, 0);
-  return Math.max(pageLimit(b.plan, b.period) - b.pagesUsed, 0) + Math.max(b.extraPages, 0);
+  return Math.max(planLimit(b) - b.pagesUsed, 0) + Math.max(b.extraPages, 0);
 }
 
 export interface Charge {
@@ -76,7 +87,7 @@ export function splitCharge(b: Balance, cost: number): Charge | null {
     if (fromExtra > Math.max(b.extraPages, 0)) return null;
     return { fromPlan: 0, fromExtra, fromFree };
   }
-  const planLeft = Math.max(pageLimit(b.plan, b.period) - b.pagesUsed, 0);
+  const planLeft = Math.max(planLimit(b) - b.pagesUsed, 0);
   const fromPlan = Math.min(cost, planLeft);
   const fromExtra = cost - fromPlan;
   if (fromExtra > Math.max(b.extraPages, 0)) return null;

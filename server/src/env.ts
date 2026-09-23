@@ -33,6 +33,7 @@ export interface AccountRow {
   pages_used: number;
   extra_pages: number;
   free_pages_left: number;
+  in_trial: number;
   retention_days: number;
   paused_until: number | null;
   share_usage: number;
