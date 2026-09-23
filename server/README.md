@@ -1,6 +1,8 @@
 # Faxlane API (Cloudflare Worker)
 
-This is the backend for the Faxlane iOS app. It runs on Cloudflare Workers, stores data in D1 (SQLite) and keeps fax PDFs in R2. Faxes go out and come in through Telnyx.
+This is the backend for the Faxlane iOS app. It runs on Cloudflare Workers, stores data in SQLite inside a Durable Object (`src/db.ts`, free plan) and keeps fax PDFs in R2.
+
+**Live:** https://faxlane-api.faxlane.workers.dev · Telnyx Fax Application `Faxlane` (3055251109728748786) with number +1 618 674 1234 · RevenueCat webhook set. Faxes go out and come in through Telnyx.
 
 The Telnyx API key lives only here, as an encrypted Worker secret. The app never sees it.
 
@@ -41,40 +43,29 @@ Built-in protections:
 - Webhook signatures are verified.
 - The app's account tokens are stored only as hashes.
 
-## Deploy (from your Mac)
+## Deploy
 
 ```bash
 cd server
 npm install
-npx wrangler login                                  # opens the browser; pick the Faxlane Cloudflare account
-
-npx wrangler d1 create faxlane                      # copy database_id into wrangler.toml
-npx wrangler r2 bucket create faxlane-faxes
-npm run db:init                                     # creates the tables
-
-npx wrangler secret put TELNYX_API_KEY              # paste when asked; never commit it
-npx wrangler secret put TELNYX_PUBLIC_KEY
-npx wrangler secret put MEDIA_SIGNING_SECRET        # e.g. output of: openssl rand -hex 32
+npx wrangler login                                  # or set CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID
+npx wrangler r2 bucket create faxlane-faxes         # once
+npx wrangler secret put TELNYX_API_KEY              # Telnyx API v2 key
+npx wrangler secret put TELNYX_PUBLIC_KEY           # Telnyx webhook public key
+npx wrangler secret put MEDIA_SIGNING_SECRET        # e.g. openssl rand -hex 32
 npx wrangler secret put REVENUECAT_SECRET_KEY       # RevenueCat API v2 secret key (sk_...)
-npx wrangler secret put REVENUECAT_WEBHOOK_AUTH     # e.g. output of: openssl rand -hex 32
-
+npx wrangler secret put REVENUECAT_WEBHOOK_AUTH     # e.g. openssl rand -hex 32
 npm run deploy
 ```
 
-Then do the following:
+The database needs no setup: the `Database` Durable Object creates its tables on first start.
 
-1. In `wrangler.toml`, set these values and run `npm run deploy` again:
-   - `PUBLIC_BASE_URL`: the URL that `deploy` printed.
-   - `TELNYX_FAX_APP_ID`: your Telnyx Fax Application ID.
-   - `SHARED_FROM_NUMBER`: the number free users send from.
-2. In Telnyx, open your Fax Application and set the webhook URL to `https://<your-worker>/v1/webhooks/telnyx`.
-3. In RevenueCat, go to Integrations → Webhooks → Add. Set the URL to `https://<your-worker>/v1/webhooks/revenuecat` and the Authorization header to the same value as `REVENUECAT_WEBHOOK_AUTH`. Send events for both production and sandbox.
-4. In the iOS project (`project.yml` → `FaxlaneAPIBaseURL`), set the Worker URL. Run `xcodegen generate` again.
+Webhooks: Telnyx Fax Application → `https://<worker>/v1/webhooks/telnyx`; RevenueCat → `https://<worker>/v1/webhooks/revenuecat` with the `REVENUECAT_WEBHOOK_AUTH` value as the Authorization header.
 
 To change remote config without an App Store update, run SQL like this:
 
 ```bash
-npx wrangler d1 execute faxlane --remote --command "INSERT OR REPLACE INTO config VALUES ('announcement', '\"New: fax to 40+ countries\"')"
+# Add a small admin route or use the Durable Object console to change rows in the config table.
 ```
 
 ## Develop and test
@@ -82,10 +73,10 @@ npx wrangler d1 execute faxlane --remote --command "INSERT OR REPLACE INTO confi
 ```bash
 npm test          # 23 tests: pages, refunds, webhooks, purchases, locked faxes, blocking, daily job
 npm run typecheck
-npm run dev       # local Worker with local D1/R2
+npm run dev       # local Worker with a local database and R2
 ```
 
-The tests use an in-memory SQLite database in place of D1, and mock Telnyx and RevenueCat. They need Node 22 or later.
+The tests use an in-memory SQLite database in place of the Durable Object, and mock Telnyx and RevenueCat. They need Node 22 or later.
 
 ## Notes
 

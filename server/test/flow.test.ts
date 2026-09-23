@@ -26,7 +26,8 @@ beforeAll(async () => {
   d1 = fakeD1();
   r2 = fakeR2();
   env = {
-    DB: d1 as unknown as D1Database,
+    DB: d1 as unknown as Env["DB"],
+    DATABASE: undefined as unknown as Env["DATABASE"],
     FAXES: r2 as unknown as R2Bucket,
     BUNDLE_ID: "com.faxlane.app",
     PUBLIC_BASE_URL: "https://api.faxlane.test",

@@ -6,8 +6,6 @@
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
-    "db:init": "wrangler d1 execute faxlane --remote --file=./schema.sql",
-    "db:init:local": "wrangler d1 execute faxlane --local --file=./schema.sql",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },

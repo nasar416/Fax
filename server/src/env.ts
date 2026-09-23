@@ -1,5 +1,9 @@
+import type { Database, Db } from "./db";
+
 export interface Env {
-  DB: D1Database;
+  /** SQLite in a Durable Object (see db.ts). The Worker sets DB from DATABASE on each request. */
+  DATABASE: DurableObjectNamespace<Database>;
+  DB: Db;
   FAXES: R2Bucket;
 
   BUNDLE_ID: string;

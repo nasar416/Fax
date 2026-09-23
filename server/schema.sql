@@ -1,4 +1,4 @@
--- Faxlane D1 schema. Apply with: npm run db:init
+-- Faxlane database schema (SQLite). The Database Durable Object applies it on start (src/db.ts).
 CREATE TABLE IF NOT EXISTS accounts (
   id TEXT PRIMARY KEY,
   apple_sub TEXT UNIQUE,

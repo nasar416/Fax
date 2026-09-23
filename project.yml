@@ -39,7 +39,7 @@ targets:
         NSSupportsLiveActivities: true
         ITSAppUsesNonExemptEncryption: false   # only standard HTTPS; no export compliance questions on upload
         # Your Cloudflare Worker URL, e.g. https://faxlane-api.<subdomain>.workers.dev (empty = mock mode)
-        FaxlaneAPIBaseURL: ""
+        FaxlaneAPIBaseURL: "https://faxlane-api.faxlane.workers.dev"
         # RevenueCat public Apple SDK key (appl_...). Safe to ship in the app. Empty = purchases off.
         FaxlaneRevenueCatAPIKey: "appl_ikecofEEwpoyIrDmQPcDmoOxfja"
         CFBundleLocalizations: [en, ar, cs, nl, fr, de, he, id, it, ja, ko, fa, pl, pt, ru, zh-Hans, es, zh-Hant, tr, vi]

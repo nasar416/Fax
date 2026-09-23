@@ -6,10 +6,20 @@ compatibility_date = "2025-01-01"
 [triggers]
 crons = ["17 3 * * *"]
 
-[[d1_databases]]
-binding = "DB"
-database_name = "faxlane"
-database_id = "REPLACE_WITH_D1_DATABASE_ID"   # printed by: npx wrangler d1 create faxlane
+# Database: SQLite inside a Durable Object (src/db.ts). Free plan; no D1 needed.
+[[durable_objects.bindings]]
+name = "DATABASE"
+class_name = "Database"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Database"]
+
+# Lets src/db.ts import schema.sql as text.
+[[rules]]
+type = "Text"
+globs = ["**/*.sql"]
+fallthrough = true
 
 [[r2_buckets]]
 binding = "FAXES"
@@ -17,9 +27,9 @@ bucket_name = "faxlane-faxes"                  # create with: npx wrangler r2 bu
 
 [vars]
 BUNDLE_ID = "com.faxlane.app"
-PUBLIC_BASE_URL = "https://faxlane-api.YOUR-SUBDOMAIN.workers.dev"
+PUBLIC_BASE_URL = "https://faxlane-api.faxlane.workers.dev"
 # Telnyx Fax Application (connection) ID from the Telnyx portal. Not a secret.
-TELNYX_FAX_APP_ID = "REPLACE_WITH_TELNYX_FAX_APPLICATION_ID"
+TELNYX_FAX_APP_ID = "3055251109728748786"
 # Shared number free users send from (they have no number of their own).
 SHARED_FROM_NUMBER = "+16186741234"
 # RevenueCat project (not a secret).
