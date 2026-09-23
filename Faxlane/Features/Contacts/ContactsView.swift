@@ -116,7 +116,7 @@ struct ContactsView: View {
                     Text("Blocked \(item.blockedAt.formatted(date: .abbreviated, time: .omitted)) · \(item.reason)")
                         .font(.footnote).foregroundStyle(.secondary)
                 }
-                .swipeActions { Button("Unblock") { model.blocked.removeAll { $0.id == item.id } }.tint(Brand.blue) }
+                .swipeActions { Button("Unblock") { model.unblock(item) }.tint(Brand.blue) }
             }
         } footer: {
             Text("You can also block a sender from any fax’s details.")

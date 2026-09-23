@@ -12,12 +12,18 @@ struct FaxlaneApp: App {
                 .environment(store)
                 .tint(Brand.blue)
                 .task {
+                    store.onVerifiedTransaction = { [model] id in
+                        guard let api = model.api else { return }
+                        if let account = try? await api.reportPurchase(transactionID: id) { model.apply(account) }
+                    }
                     await model.loadRemoteConfig()
+                    await model.syncAccount()
                     await store.loadProducts()
-                    if let active = store.activePlan {
+                    if model.api == nil, let active = store.activePlan {
                         model.plan = active.tier
                         model.period = active.period
                     }
+                    await model.refreshFaxes()
                 }
         }
     }

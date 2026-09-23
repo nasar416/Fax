@@ -60,19 +60,34 @@ final class AppModel {
         enum Phase: Equatable { case dialing, sending, delivered, failed(String) }
     }
 
-    init(service: FaxService = MockFaxService()) {
-        self.service = service
+    private(set) var api: APIClient?
+
+    init(service: FaxService? = nil) {
         let defaults = UserDefaults.standard
-        if let token = AccountStore.loadToken() {
-            accountToken = token
-            restoredFromBackup = !defaults.bool(forKey: "hasLaunched")
+        let token: UUID
+        let restored: Bool
+        if let saved = AccountStore.loadToken() {
+            token = saved
+            restored = !defaults.bool(forKey: "hasLaunched")
         } else {
-            let token = UUID()
+            token = UUID()
             AccountStore.saveToken(token)
-            accountToken = token
-            restoredFromBackup = false
+            restored = false
         }
-        if restoredFromBackup {
+        let client = APIClient.configuredBaseURL.map { APIClient(baseURL: $0, token: token) }
+
+        // Every stored property without a default is set before `self` is used.
+        accountToken = token
+        restoredFromBackup = restored
+        api = client
+        if let service {
+            self.service = service
+        } else if let client {
+            self.service = RemoteFaxService(api: client)
+        } else {
+            self.service = MockFaxService()
+        }
+        if restored {
             stage = .restored
         } else if defaults.bool(forKey: "hasOnboarded") {
             stage = .main
@@ -80,11 +95,19 @@ final class AppModel {
             stage = .language
         }
         defaults.set(true, forKey: "hasLaunched")
-        let firstNumber = numbers.first?.id
-        sendingNumberID = firstNumber
-        groups = [ContactGroup(name: "Pharmacies", memberIDs: [contacts[0].id]),
-                  ContactGroup(name: "Insurance companies", memberIDs: [contacts[1].id]),
-                  ContactGroup(name: "Law offices", memberIDs: [contacts[2].id])]
+
+        sendingNumberID = numbers.first?.id
+        if client != nil {
+            // Real data comes from the server; contacts stay on the phone.
+            faxes = []
+            blocked = []
+            numbers = []
+            team = [TeamMember(name: String(localized: "You"), email: "", role: .admin)]
+        } else {
+            groups = [ContactGroup(name: "Pharmacies", memberIDs: [contacts[0].id]),
+                      ContactGroup(name: "Insurance companies", memberIDs: [contacts[1].id]),
+                      ContactGroup(name: "Law offices", memberIDs: [contacts[2].id])]
+        }
     }
 
     func finishOnboarding() {
@@ -93,6 +116,24 @@ final class AppModel {
     }
 
     func loadRemoteConfig() async { remoteConfig = await RemoteConfig.fetch() }
+
+    /// Registers this device with the server and copies the account's plan and pages.
+    func syncAccount() async {
+        guard let api else { return }
+        if let account = try? await api.register() { apply(account) }
+    }
+
+    func apply(_ account: APIClient.Account) {
+        plan = account.plan.flatMap(PlanTier.init(rawValue:))
+        if let p = account.period.flatMap(BillingPeriod.init(rawValue:)) { period = p }
+        isSignedIn = account.signedIn
+        if plan == nil {
+            freePagesLeft = max(account.pagesLeft - max(account.extraPages, 0), 0)
+        } else {
+            pagesUsed = account.pagesUsed
+        }
+        extraPages = account.extraPages
+    }
 
     var appVersion: String { Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0.0" }
 
@@ -105,15 +146,53 @@ final class AppModel {
     var recent: [Fax] { Array(faxes.filter { $0.deletedAt == nil && !$0.isInOutbox }.sorted { $0.date > $1.date }.prefix(3)) }
     var unreadCount: Int { inbox.filter(\.unread).count }
 
-    func markRead(_ fax: Fax) { update(fax) { $0.unread = false } }
-    func moveToTrash(_ fax: Fax) { update(fax) { $0.deletedAt = .now } }
-    func restore(_ fax: Fax) { update(fax) { $0.deletedAt = nil } }
-    func emptyTrash() { faxes.removeAll { $0.deletedAt != nil } }
+    func markRead(_ fax: Fax) {
+        guard fax.unread else { return }
+        update(fax) { $0.unread = false }
+        remote { try await $0.updateFax(id: fax.id, read: true) }
+    }
+    func moveToTrash(_ fax: Fax) {
+        update(fax) { $0.deletedAt = .now }
+        remote { try await $0.updateFax(id: fax.id, deleted: true) }
+    }
+    func restore(_ fax: Fax) {
+        update(fax) { $0.deletedAt = nil }
+        remote { try await $0.updateFax(id: fax.id, deleted: false) }
+    }
+    func emptyTrash() {
+        faxes.removeAll { $0.deletedAt != nil }
+        remote { try await $0.emptyTrash() }
+    }
     func retry(_ fax: Fax) { update(fax) { $0.state = .queued } }
 
     func block(_ number: String, reason: String = String(localized: "Blocked by you")) {
         guard !blocked.contains(where: { $0.number == number }) else { return }
         blocked.insert(BlockedNumber(number: number, blockedAt: .now, reason: reason), at: 0)
+        remote { try await $0.block(number: number, reason: reason) }
+    }
+
+    func unblock(_ item: BlockedNumber) {
+        blocked.removeAll { $0.id == item.id }
+        remote { try await $0.unblock(number: item.number) }
+    }
+
+    /// Loads every folder from the server.
+    func refreshFaxes() async {
+        guard let api else { return }
+        var all: [Fax] = []
+        for folder in ["inbox", "sent", "outbox", "trash"] {
+            if let items = try? await api.faxes(folder: folder) { all += items.map(\.model) }
+        }
+        faxes = all
+        if let list = try? await api.blocked() {
+            blocked = list.map { BlockedNumber(number: $0.number, blockedAt: Date(timeIntervalSince1970: $0.blockedAt), reason: $0.reason) }
+        }
+    }
+
+    /// Fire-and-forget server call; the screen already shows the change.
+    private func remote(_ action: @escaping @Sendable (APIClient) async throws -> Void) {
+        guard let api else { return }
+        Task { try? await action(api) }
     }
 
     private func update(_ fax: Fax, _ change: (inout Fax) -> Void) {
@@ -170,6 +249,7 @@ final class AppModel {
     }
 
     func deleteAccount() {
+        if let api { Task { try? await api.deleteAccount() } }
         AccountStore.deleteToken()
         UserDefaults.standard.removeObject(forKey: "hasOnboarded")
         faxes = []; contacts = []; blocked = []
@@ -178,6 +258,7 @@ final class AppModel {
         let token = UUID()
         AccountStore.saveToken(token)
         accountToken = token
+        if let base = APIClient.configuredBaseURL { api = APIClient(baseURL: base, token: token) }
         stage = .language
     }
 }

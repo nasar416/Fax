@@ -29,7 +29,9 @@ struct RemoteConfig: Codable {
     static let url: URL? = nil // e.g. URL(string: "https://your-server.example/config.json")
 
     static func fetch() async -> RemoteConfig {
-        guard let url else { return RemoteConfig() }
+        // Uses the Faxlane server's /v1/config when the server is configured.
+        let source = url ?? APIClient.configuredBaseURL.map { APIClient(baseURL: $0, token: UUID()).url("v1/config") }
+        guard let url = source else { return RemoteConfig() }
         do {
             let (data, _) = try await URLSession.shared.data(from: url)
             return try JSONDecoder().decode(RemoteConfig.self, from: data)

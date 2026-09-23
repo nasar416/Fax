@@ -86,7 +86,7 @@ struct FaxesView: View {
         .confirmationDialog("Erase everything in Trash?", isPresented: $confirmEmpty, titleVisibility: .visible) {
             Button("Empty Trash", role: .destructive) { model.emptyTrash() }
         }
-        .refreshable { try? await Task.sleep(for: .seconds(1)) }
+        .refreshable { await model.refreshFaxes() }
     }
 
     private var selectedFaxes: [Fax] { items.filter { selection.contains($0.id) } }

@@ -10,6 +10,8 @@ final class StoreManager {
     private(set) var activePlan: (tier: PlanTier, period: BillingPeriod)?
     private(set) var isPurchasing = false
     var lastError: String?
+    /// Called with every verified transaction so the server can apply it (set by FaxlaneApp).
+    var onVerifiedTransaction: (@MainActor (UInt64) async -> Void)?
 
     private var updatesTask: Task<Void, Never>?
 
@@ -17,6 +19,7 @@ final class StoreManager {
         updatesTask = Task { [weak self] in
             for await update in Transaction.updates {
                 if case .verified(let transaction) = update {
+                    await self?.onVerifiedTransaction?(transaction.id)
                     await transaction.finish()
                     await self?.refreshEntitlements()
                 }
@@ -54,6 +57,7 @@ final class StoreManager {
             let result = try await product.purchase(options: [.appAccountToken(accountToken)])
             switch result {
             case .success(.verified(let transaction)):
+                await onVerifiedTransaction?(transaction.id)
                 await transaction.finish()
                 await refreshEntitlements()
                 return true
@@ -72,6 +76,9 @@ final class StoreManager {
 
     func restore() async {
         try? await AppStore.sync()
+        for await entitlement in Transaction.currentEntitlements {
+            if case .verified(let transaction) = entitlement { await onVerifiedTransaction?(transaction.id) }
+        }
         await refreshEntitlements()
     }
 

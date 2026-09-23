@@ -56,8 +56,8 @@ Shared/           FaxActivityAttributes (used by both targets)
 | Item | Where |
 |---|---|
 | Create the in-app purchases in App Store Connect with the IDs in `PlanTier.productID` (for example `com.faxlane.premium.annual`) and `PagePack.productID` (`com.faxlane.pages.25`). | `Models/Models.swift` |
-| Build the backend and replace `MockFaxService`. The backend keeps the Telnyx API key, sends and receives faxes, counts pages, and handles App Store Server Notifications (refunds, renewals). Never put the Telnyx key in the app. | `Services/FaxService.swift` |
-| Host a `config.json` (Firebase Remote Config or any static file) and set `RemoteConfig.url`. Missing keys use the defaults. | `Services/RemoteConfig.swift` |
+| Deploy the backend in [`server/`](server/README.md) (Cloudflare Worker + D1 + R2 + Telnyx). Then set `FaxlaneAPIBaseURL` in `project.yml` to the Worker URL. While it's empty the app runs on sample data. The Telnyx key stays on the server. | `server/`, `project.yml` |
+| Remote config is read from the server's `/v1/config` (the `config` table in D1). Change a row there to show an announcement, turn on maintenance, or force an update. No App Store update is needed. | `server/`, `Services/RemoteConfig.swift` |
 | Set the App Store ID for the force-update button. | `Features/System/SystemViews.swift` |
 | Set your Privacy Policy URL. | `Features/Paywall/PaywallViews.swift` |
 | Add the app icon (light, dark and tinted, 1024×1024) to `AppIcon`. | `Resources/Assets.xcassets` |

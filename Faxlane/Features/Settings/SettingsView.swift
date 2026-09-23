@@ -118,10 +118,17 @@ struct SignInView: View {
                 }
                 .symbolRenderingMode(.hierarchical)
                 .foregroundStyle(Brand.blue)
-                AppleSignInButton { name in
-                    model.isSignedIn = true
+                AppleSignInButton { name, identityToken in
                     model.displayName = name
-                    dismiss()
+                    Task {
+                        if let api = model.api, let identityToken,
+                           let account = try? await api.signInWithApple(identityToken: identityToken) {
+                            model.apply(account)
+                            await model.refreshFaxes()
+                        }
+                        model.isSignedIn = true
+                        dismiss()
+                    }
                 }
             }
             .padding(20)

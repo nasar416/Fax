@@ -33,6 +33,8 @@ targets:
         NSContactsUsageDescription: Faxlane looks for fax numbers in your contacts. Your contacts stay on this iPhone.
         NSFaceIDUsageDescription: Faxlane can ask for Face ID before showing your faxes.
         NSSupportsLiveActivities: true
+        # Your Cloudflare Worker URL, e.g. https://faxlane-api.<subdomain>.workers.dev (empty = mock mode)
+        FaxlaneAPIBaseURL: ""
         CFBundleLocalizations: [en, ar, cs, nl, fr, de, he, id, it, ja, ko, fa, pl, pt, ru, zh-Hans, es, zh-Hant, tr, vi]
     settings:
       base:

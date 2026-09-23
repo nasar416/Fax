@@ -188,7 +188,12 @@ struct LockedFaxView: View {
         .safeAreaInset(edge: .bottom) {
             VStack(spacing: 6) {
                 Button("Add \(pack.pages) pages and open fax") {
-                    Task { await store.purchase(pack.productID, accountToken: model.accountToken) }
+                    Task {
+                        if await store.purchase(pack.productID, accountToken: model.accountToken), let api = model.api {
+                            try? await api.unlockFax(id: fax.id)
+                            await model.refreshFaxes()
+                        }
+                    }
                 }
                 .buttonStyle(.primary)
                 Button("Or upgrade to Business · 700 pages a month") { showPaywall = true }.font(.footnote.weight(.semibold))
