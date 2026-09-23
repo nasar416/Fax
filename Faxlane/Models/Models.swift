@@ -149,7 +149,7 @@ enum PlanTier: String, CaseIterable, Identifiable, Codable {
         case (.premium, .weekly): "$5.99"
         case (.premium, .monthly): "$17.99"
         case (.premium, .annual): "$167.99"
-        case (.business, .annual): "$335.99"
+        case (.business, .annual): "$334.99"
         case (.business, _): "$34.99"
         case (.enterprise, .annual): "$959.99"
         case (.enterprise, _): "$99.99"
