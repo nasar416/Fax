@@ -55,7 +55,7 @@ npm run db:init                                     # creates the tables
 npx wrangler secret put TELNYX_API_KEY              # paste when asked; never commit it
 npx wrangler secret put TELNYX_PUBLIC_KEY
 npx wrangler secret put MEDIA_SIGNING_SECRET        # e.g. output of: openssl rand -hex 32
-npx wrangler secret put REVENUECAT_SECRET_KEY       # RevenueCat secret API key (sk_...)
+npx wrangler secret put REVENUECAT_SECRET_KEY       # RevenueCat API v2 secret key (sk_...)
 npx wrangler secret put REVENUECAT_WEBHOOK_AUTH     # e.g. output of: openssl rand -hex 32
 
 npm run deploy
@@ -80,7 +80,7 @@ npx wrangler d1 execute faxlane --remote --command "INSERT OR REPLACE INTO confi
 ## Develop and test
 
 ```bash
-npm test          # 22 tests: pages, refunds, webhooks, purchases, locked faxes, blocking, daily job
+npm test          # 23 tests: pages, refunds, webhooks, purchases, locked faxes, blocking, daily job
 npm run typecheck
 npm run dev       # local Worker with local D1/R2
 ```

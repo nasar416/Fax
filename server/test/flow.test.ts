@@ -12,10 +12,14 @@ let r2: ReturnType<typeof fakeR2>;
 let telnyxKeys: CryptoKeyPair;
 let telnyxSent: unknown[] = [];
 let telnyxCounter = 0;
-let rcSubscriber: { subscriptions: Record<string, object>; non_subscriptions: Record<string, object[]> } = { subscriptions: {}, non_subscriptions: {} };
+const rcProducts = [
+  { id: "prod_pm", store_identifier: "com.faxlane.premium.monthly" },
+  { id: "prod_p10", store_identifier: "com.faxlane.pages.10" },
+];
+let rcSubscriptions: object[] = [];
+let rcPurchases: object[] = [];
 
 const b64 = (buf: ArrayBuffer) => btoa(String.fromCharCode(...new Uint8Array(buf)));
-const iso = (msFromNow: number) => new Date(Date.now() + msFromNow).toISOString();
 
 beforeAll(async () => {
   telnyxKeys = (await crypto.subtle.generateKey({ name: "Ed25519" }, true, ["sign", "verify"])) as CryptoKeyPair;
@@ -32,6 +36,7 @@ beforeAll(async () => {
     TELNYX_API_KEY: "test",
     TELNYX_PUBLIC_KEY: b64(await crypto.subtle.exportKey("raw", telnyxKeys.publicKey) as ArrayBuffer),
     MEDIA_SIGNING_SECRET: "media-secret",
+    REVENUECAT_PROJECT_ID: "proj1",
     REVENUECAT_SECRET_KEY: "sk_test",
     REVENUECAT_WEBHOOK_AUTH: "hook-secret",
   };
@@ -42,9 +47,12 @@ beforeAll(async () => {
       telnyxSent.push(JSON.parse(String(init?.body)));
       return Response.json({ data: { id: `tx-${++telnyxCounter}` } });
     }
-    if (url.startsWith("https://api.revenuecat.com/v1/subscribers/")) {
+    if (url.startsWith("https://api.revenuecat.com/v2/projects/proj1/")) {
       expect(new Headers(init?.headers).get("authorization")).toBe("Bearer sk_test");
-      return Response.json({ subscriber: rcSubscriber });
+      const path = url.split("/proj1")[1]!.split("?")[0]!;
+      if (path === "/products") return Response.json({ items: rcProducts, next_page: null });
+      if (path.endsWith("/subscriptions")) return Response.json({ items: rcSubscriptions, next_page: null });
+      if (path.endsWith("/purchases")) return Response.json({ items: rcPurchases, next_page: null });
     }
     if (url === "https://media.telnyx.test/in.pdf") return new Response(new Uint8Array([37, 80, 68, 70]));
     throw new Error(`Unexpected fetch ${url}`);
@@ -142,7 +150,7 @@ describe("Faxlane API", () => {
   it("activates a plan that RevenueCat confirms", async () => {
     // The app's claim alone changes nothing: RevenueCat has no purchase yet.
     expect((await call("POST", "/v1/purchases")).body.plan).toBeNull();
-    rcSubscriber.subscriptions["com.faxlane.premium.monthly"] = { expires_date: iso(30 * 86400_000), purchase_date: iso(0), store: "app_store" };
+    rcSubscriptions = [{ product_id: "prod_pm", gives_access: true, current_period_ends_at: Date.now() + 30 * 86400_000 }];
     const res = await call("POST", "/v1/purchases");
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({ plan: "premium", period: "monthly", pageLimit: 300, pagesLeft: 300 });
@@ -182,7 +190,7 @@ describe("Faxlane API", () => {
     expect((await call("GET", `/v1/faxes/${locked.id}/pdf`)).status).toBe(402);
 
     // Buy a 10-page pack, then open the locked fax.
-    rcSubscriber.non_subscriptions["com.faxlane.pages.10"] = [{ id: "rc-2001", store_transaction_id: "2001", purchase_date: iso(0), store: "app_store" }];
+    rcPurchases = [{ id: "rc-2001", product_id: "prod_p10", status: "owned", store_purchase_identifier: "2001" }];
     expect((await call("POST", "/v1/purchases")).body.extraPages).toBe(10);
     expect((await call("POST", "/v1/purchases")).body.extraPages).toBe(10); // no double credit
     expect((await call("POST", `/v1/faxes/${locked.id}/unlock`)).body.state).toBe("received");
@@ -196,11 +204,20 @@ describe("Faxlane API", () => {
     expect((await call("GET", "/v1/me")).body.extraPages).toBe(-3);
     await revenueCatEvent(refund); // only once
     expect((await call("GET", "/v1/me")).body.extraPages).toBe(-3);
+    rcPurchases = [{ id: "rc-2001", product_id: "prod_p10", status: "refunded", store_purchase_identifier: "2001" }];
+    expect((await call("POST", "/v1/purchases")).body.extraPages).toBe(-3); // a sync doesn't take it twice
+  });
+
+  it("takes a refunded pack back during a sync", async () => {
+    rcPurchases = [{ id: "rc-3001", product_id: "prod_p10", status: "owned", store_purchase_identifier: "3001" }];
+    expect((await call("POST", "/v1/purchases")).body.extraPages).toBe(7);
+    rcPurchases = [{ id: "rc-3001", product_id: "prod_p10", status: "refunded", store_purchase_identifier: "3001" }];
+    expect((await call("POST", "/v1/purchases")).body.extraPages).toBe(-3);
   });
 
   it("holds numbers for 14 days when the plan ends", async () => {
     const me = (await call("GET", "/v1/me")).body;
-    rcSubscriber.subscriptions["com.faxlane.premium.monthly"] = { expires_date: iso(-1000), purchase_date: iso(-31 * 86400_000), store: "app_store" };
+    rcSubscriptions = [{ product_id: "prod_pm", gives_access: false, current_period_ends_at: Date.now() - 1000 }];
     expect(await revenueCatEvent({ type: "EXPIRATION", app_user_id: me.id, product_id: "com.faxlane.premium.monthly" })).toBe(200);
     expect((await call("GET", "/v1/me")).body.plan).toBeNull();
     const row = d1.raw.prepare("SELECT release_after FROM numbers").get() as { release_after: number };

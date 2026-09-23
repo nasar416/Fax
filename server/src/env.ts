@@ -7,11 +7,12 @@ export interface Env {
   TELNYX_FAX_APP_ID: string;
   SHARED_FROM_NUMBER: string;
   ALLOWED_DIAL_CODES: string;
+  REVENUECAT_PROJECT_ID: string;
 
   TELNYX_API_KEY: string;
   TELNYX_PUBLIC_KEY: string;
   MEDIA_SIGNING_SECRET: string;
-  /** RevenueCat secret API key (sk_...), used to read a customer's purchases. */
+  /** RevenueCat API v2 secret key (sk_...), used to read a customer's purchases. */
   REVENUECAT_SECRET_KEY: string;
   /** The Authorization value set on the RevenueCat webhook. */
   REVENUECAT_WEBHOOK_AUTH: string;

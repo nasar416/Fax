@@ -3,36 +3,65 @@ import { sha256Hex } from "./crypto";
 import { HttpError, now } from "./http";
 import { parseProductId, type Period, type Plan } from "./plans";
 
-/** The parts of RevenueCat's GET /v1/subscribers/{app_user_id} answer that Faxlane uses. */
+const API = "https://api.revenuecat.com/v2";
+
+/** The parts of RevenueCat's API v2 answers that Faxlane uses. Times are in milliseconds. */
 export interface Subscriber {
-  subscriptions: Record<string, {
-    expires_date: string | null;
-    purchase_date: string;
-    refunded_at?: string | null;
-    store?: string;
-  }>;
-  non_subscriptions: Record<string, {
-    id: string;
-    store_transaction_id?: string;
-    purchase_date: string;
-    store?: string;
-  }[]>;
+  subscriptions: { product: string; givesAccess: boolean; endsAt: number | null }[];
+  purchases: { id: string; storeId: string | null; product: string; refunded: boolean }[];
 }
 
-/**
- * Reads a customer's purchases from RevenueCat. The app user ID is the Faxlane account ID
- * (the app calls Purchases.logIn with it), so the answer always belongs to this account.
- */
-export async function getSubscriber(env: Env, appUserId: string): Promise<Subscriber> {
-  const res = await fetch(`https://api.revenuecat.com/v1/subscribers/${encodeURIComponent(appUserId)}`, {
+async function rc<T>(env: Env, path: string): Promise<T | null> {
+  const res = await fetch(`${API}/projects/${env.REVENUECAT_PROJECT_ID}${path}`, {
     headers: { authorization: `Bearer ${env.REVENUECAT_SECRET_KEY}`, accept: "application/json" },
   });
+  if (res.status === 404) return null;
   if (!res.ok) {
     console.error("RevenueCat API error", res.status, await res.text());
     throw new HttpError(502, "revenuecat_error", "We couldn’t check your purchases. Try again.");
   }
-  const { subscriber } = (await res.json()) as { subscriber: Partial<Subscriber> };
-  return { subscriptions: subscriber.subscriptions ?? {}, non_subscriptions: subscriber.non_subscriptions ?? {} };
+  return (await res.json()) as T;
+}
+
+/** Follows RevenueCat's next_page links (a customer rarely has more than one page). */
+async function list<T>(env: Env, path: string): Promise<T[]> {
+  const items: T[] = [];
+  let next: string | null = path;
+  for (let i = 0; next && i < 10; i++) {
+    const page: { items: T[]; next_page: string | null } | null = await rc(env, next);
+    if (!page) break;
+    items.push(...page.items);
+    next = page.next_page ? page.next_page.replace(/^.*\/projects\/[^/]+/, "") : null;
+  }
+  return items;
+}
+
+/** RevenueCat product ID → App Store product ID. Cached while the Worker stays warm. */
+let productCache: Map<string, string> | null = null;
+async function storeIdentifier(env: Env, rcProductId: string): Promise<string | undefined> {
+  if (!productCache?.has(rcProductId)) {
+    const products = await list<{ id: string; store_identifier: string }>(env, "/products?limit=100");
+    productCache = new Map(products.map((p) => [p.id, p.store_identifier]));
+  }
+  return productCache.get(rcProductId);
+}
+
+/**
+ * Reads a customer's purchases from RevenueCat. The customer ID is the Faxlane account ID
+ * (the app calls Purchases.logIn with it), so the answer always belongs to this account.
+ */
+export async function getSubscriber(env: Env, appUserId: string): Promise<Subscriber> {
+  const id = encodeURIComponent(appUserId);
+  const subs = await list<{ product_id: string; gives_access: boolean; current_period_ends_at: number | null }>(env, `/customers/${id}/subscriptions?limit=100`);
+  const buys = await list<{ id: string; product_id: string; status: string; store_purchase_identifier?: string | null }>(env, `/customers/${id}/purchases?limit=100`);
+  return {
+    subscriptions: await Promise.all(subs.map(async (s) => ({
+      product: (await storeIdentifier(env, s.product_id)) ?? "", givesAccess: s.gives_access, endsAt: s.current_period_ends_at,
+    }))),
+    purchases: await Promise.all(buys.map(async (p) => ({
+      id: p.id, storeId: p.store_purchase_identifier ?? null, product: (await storeIdentifier(env, p.product_id)) ?? "", refunded: p.status === "refunded",
+    }))),
+  };
 }
 
 const RANK: Record<Plan, number> = { basic: 1, premium: 2, business: 3, enterprise: 4 };
@@ -46,27 +75,28 @@ export async function syncPurchases(env: Env, account: AccountRow): Promise<void
   const ts = now();
 
   // Page packs. The transaction ID is the primary key, so a pack is never credited twice,
-  // even if two syncs run at the same moment.
-  for (const [productId, purchases] of Object.entries(subscriber.non_subscriptions)) {
-    const product = parseProductId(productId);
+  // even if two syncs run at the same moment. Refunded packs are taken back once.
+  for (const p of subscriber.purchases) {
+    const product = parseProductId(p.product);
     if (product?.kind !== "pages") continue;
-    for (const p of purchases) {
-      const inserted = await env.DB.prepare(
-        "INSERT OR IGNORE INTO transactions (transaction_id, original_transaction_id, account_id, product_id, pages_added, created_at) VALUES (?, ?, ?, ?, ?, ?)",
-      ).bind(p.store_transaction_id ?? p.id, p.id, account.id, productId, product.pages, ts).run();
-      if (inserted.meta.changes === 1) {
-        await env.DB.prepare("UPDATE accounts SET extra_pages = extra_pages + ? WHERE id = ?").bind(product.pages, account.id).run();
-      }
+    if (p.refunded) {
+      await revokePagePack(env, [p.storeId ?? p.id]);
+      continue;
+    }
+    const inserted = await env.DB.prepare(
+      "INSERT OR IGNORE INTO transactions (transaction_id, original_transaction_id, account_id, product_id, pages_added, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+    ).bind(p.storeId ?? p.id, p.id, account.id, p.product, product.pages, ts).run();
+    if (inserted.meta.changes === 1) {
+      await env.DB.prepare("UPDATE accounts SET extra_pages = extra_pages + ? WHERE id = ?").bind(product.pages, account.id).run();
     }
   }
 
   // Subscriptions: pick the highest active plan.
   let best: { plan: Plan; period: Period; expiresAt: number | null } | null = null;
-  for (const [productId, sub] of Object.entries(subscriber.subscriptions)) {
-    const product = parseProductId(productId);
-    if (product?.kind !== "subscription" || sub.refunded_at) continue;
-    const expiresAt = sub.expires_date ? Math.floor(Date.parse(sub.expires_date) / 1000) : null;
-    if (expiresAt !== null && expiresAt <= ts) continue;
+  for (const sub of subscriber.subscriptions) {
+    const product = parseProductId(sub.product);
+    if (product?.kind !== "subscription" || !sub.givesAccess) continue;
+    const expiresAt = sub.endsAt ? Math.floor(sub.endsAt / 1000) : null;
     if (!best || RANK[product.plan] > RANK[best.plan] || (RANK[product.plan] === RANK[best.plan] && (expiresAt ?? Infinity) > (best.expiresAt ?? Infinity))) {
       best = { plan: product.plan, period: product.period, expiresAt };
     }

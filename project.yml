@@ -40,7 +40,7 @@ targets:
         # Your Cloudflare Worker URL, e.g. https://faxlane-api.<subdomain>.workers.dev (empty = mock mode)
         FaxlaneAPIBaseURL: ""
         # RevenueCat public Apple SDK key (appl_...). Safe to ship in the app. Empty = purchases off.
-        FaxlaneRevenueCatAPIKey: ""
+        FaxlaneRevenueCatAPIKey: "appl_ikecofEEwpoyIrDmQPcDmoOxfja"
         CFBundleLocalizations: [en, ar, cs, nl, fr, de, he, id, it, ja, ko, fa, pl, pt, ru, zh-Hans, es, zh-Hant, tr, vi]
     settings:
       base:
